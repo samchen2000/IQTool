@@ -9,7 +9,6 @@ from queue import Queue
 from threading import Thread
 import sys
 import getopt
-import matplotlib.pyplot as plt
 import numpy as np
 
 class Main_GUI():
