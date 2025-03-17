@@ -30,6 +30,7 @@ class Main_GUI():
         self.radiobutton()
         self.entry()
         self.scale()
+       # self.ImageFrame()
        # self.cam_frame()
         '''
         self.mygui = Tk(className="影像處理技術")
@@ -56,6 +57,7 @@ class Main_GUI():
         color_But.place(relx=0.88, rely=0.4, relwidth=0.1, relheight=0.06)
             
     def Table(self):
+        #增加文字
         contrast_Lab = tk.Label(self.mygui, text='對比=', anchor='w', bg='green', )
         contrast_Lab.place(relx=0.67, rely=0.06, relwidth=0.06, relheight=0.03)
         brightness_Lab = tk.Label(self.mygui, text='明亮=', anchor='w', )
@@ -83,6 +85,7 @@ class Main_GUI():
         
     
     def LableFrame(self):
+        #增加文字功能框
         camera_Lab_frame = tk.LabelFrame(self.mygui, font=(12), text='main cam')
         camera_Lab_frame.place(relx=0.005, rely=0.01, relwidth=0.65, relheight=0.55)
         cam_contrel_Lab_frame = tk.LabelFrame(self.mygui, font=(12), text='相機控制')
@@ -93,6 +96,27 @@ class Main_GUI():
         article_detect_Lab_frame.place(relx=0.31, rely=0.64, relwidth=0.33, relheight=0.35)
         number_Lab_frame = tk.LabelFrame(self.mygui, font=(12), text='車牌偵測控制')
         number_Lab_frame.place(relx=0.65, rely=0.64, relwidth=0.34, relheight=0.35)
+    
+    def ImageFrame(self):
+        frame = tk.Frame(self.mygui, width= 300, height=300, bg= 'blue', bd='3')
+        frame.place(relx=0.01, rely=0.05, relwidth=0.48, relheight=0.5)
+        filename = askopenfilename(initialdir='Sample.bmp')
+        self.image = Image.open(filename)
+        image1 = self.image.resize((self.width, self.height), Image.LANCZOS)
+        la_image = ImageTk.PhotoImage(image1)  #轉換格式
+        canvas = tk.Canvas(frame, width=500, height=300, bg='gray')  # Canvas
+        canvas.create_image(5, 5, ancgro='nw', image=la_image)
+        
+        scrollX = tk.Scrollbar(frame, orient='horizontal')    # 水平捲軸
+        scrollX.pack(side='bottom', fill='x')
+        scrollX.config(command=Canvas.xview)
+
+        scrollY = tk.Scrollbar(frame, orient='vertical')      # 垂直捲軸
+        scrollY.pack(side='right', fill='y')
+        scrollY.config(command=canvas.yview)
+
+        canvas.config(xscrollcommand=scrollX.set, yscrollcommand=scrollY.set)   # Canvas 綁定捲軸
+        canvas.pack(side='left')
     
     def cam_frame(self):
         cam_frome1 = tk.Frame(self.mygui, width=640, height=480, relief='raised', bg='gray', bd='5')
@@ -121,6 +145,7 @@ class Main_GUI():
         cv2.destroyAllWindows()
         
     def radiobutton(self):
+        #增加測試選項
         val = tk.StringVar()
         video_btn_face = tk.Radiobutton(self.mygui, text='face detect', font=('宋体', 12, 'bold'), variable=val, value=1)
         video_btn_face.place(relx=0.02, rely=0.57, relwidth=0.15, relheight=0.05)
@@ -193,7 +218,7 @@ class Main_GUI():
         FPS_entry.place(relx=0.92, rely=0.60, relwidth=0.06, relheight=0.03)        
         
     def scale(self):
-        contrast_scale = tk.Scale(self.mygui, from_=0, to=100, orient='horizontal', command=self.entry)
+        contrast_scale = tk.Scale(self.mygui, from_= -50, to= 50, orient='horizontal')
         contrast_scale.place(relx=0.78, rely=0.03, )
         brightness_scale = tk.Scale(self.mygui, from_=0, to=100, orient='horizontal')
         brightness_scale.place(relx=0.78, rely=0.09, )
@@ -214,6 +239,8 @@ class Main_GUI():
         
         def_But = tk.Button(self.mygui,padx=1,pady=1,text="預設值", font=('宋体', 10, 'bold'), bg='#F0F0F0')
         def_But.place(relx=0.75, rely=0.58, relwidth=0.07, relheight=0.05)
+        
+        #print(f'control = {control_iq}')
 
     def def_but(self):
         def_But = tk.Button(self.mygui,padx=1,pady=1,text="預設值", font=('宋体', 12, 'bold'), bg='#F0F0F0')
@@ -447,7 +474,7 @@ class Main_GUI():
         crosshairStarY = int(cam_hieght/2-crosshairline)
         crosshairEndY = int(cam_hieght/2+crosshairline)
         
-        FOV = 0.7
+        FOV = 0.8
         FOV_StartX = int((cam_width-(cam_width*cam_hieght*FOV/cam_hieght))/2)
         FOV_EndX = int(FOV_StartX+(cam_width*cam_hieght*FOV/cam_hieght))
         FOV_StartY = int((cam_hieght-(cam_width*cam_hieght*FOV/cam_width))/2)
