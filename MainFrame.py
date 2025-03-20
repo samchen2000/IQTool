@@ -467,6 +467,7 @@ class Main_GUI():
         cam_width = 1280
         cam_hieght = 720
         crosshairline = 50  # 設定中心線的長度
+        lux
         crosshairX = int(cam_width/2)
         crosshairY = int(cam_hieght/2)
         crosshairStarX = int(cam_width/2-crosshairline)
@@ -486,6 +487,9 @@ class Main_GUI():
         cv2.line(self.cam_frame, (crosshairX, crosshairStarY), (crosshairX, crosshairEndY), (0, 0, 255), 2)
         cv2.rectangle(self.cam_frame, (FOV_StartX, FOV_StartY), (FOV_EndX, FOV_EndY), (0, 255, 0 ), 3)
         cv2.putText(self.cam_frame, 'FOV='+str(FOV), (10,50), font, 2, (255, 0, 0), 2, cv2.LINE_AA)
+        
+        ##rectangle() 畫上下左右中方塊
+        cv2.rectangle(self.cam_frame, ())
     
     def command_threshold(self):
         self.top = Toplevel(width=500, height=250)
