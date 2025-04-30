@@ -30,8 +30,8 @@ class Main_GUI():
         self.radiobutton()
         self.entry()
         self.scale()
-       # self.ImageFrame()
-       # self.cam_frame()
+        #self.ImageFrame()
+        #self.cam_frame()
         '''
         self.mygui = Tk(className="影像處理技術")
         self.mygui.geometry(f'{width}x{height}+{left}+{top}')  # 定義視窗的尺寸和位置
@@ -255,7 +255,7 @@ class Main_GUI():
         # 文件菜單
         filemenu = Menu(self.mymenu, tearoff=0)
         filemenu.add_command(label='打開圖片', command=self.command_open)
-        filemenu.add_command(label='開啟UVC cam', command=self.show_cam)
+        filemenu.add_command(label='開啟UVC cam', command=self.cam_frame)#self.show_cam)
         filemenu.add_separator()
         filemenu.add_command(label='關閉', command=self.command_exit)
         
@@ -467,7 +467,6 @@ class Main_GUI():
         cam_width = 1280
         cam_hieght = 720
         crosshairline = 50  # 設定中心線的長度
-        lux
         crosshairX = int(cam_width/2)
         crosshairY = int(cam_hieght/2)
         crosshairStarX = int(cam_width/2-crosshairline)
