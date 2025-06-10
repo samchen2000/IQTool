@@ -1,5 +1,4 @@
 import cv2
-import ffmpeg
 import numpy as np
 
 source = "rtsp://192.168.1.10/video0"
