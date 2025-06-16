@@ -30,6 +30,7 @@ def draw_rectangle(event, ex, ey, flags, param):
         drawing = False
         x, y, w, h = ix, iy, ex-ix, ey-iy
 
+
 # 設定滑鼠回調函數
 cv2.namedWindow('Frame')
 cv2.setMouseCallback('Frame', draw_rectangle)
