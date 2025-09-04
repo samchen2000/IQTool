@@ -4,8 +4,8 @@ from PIL import Image, ImageTk, ImageEnhance
 from tkinter import messagebox
 
 root = tk.Tk()
-root.title('oxxo.studio')
-root.geometry('360x480')
+root.title('Camera Image Tuning')
+root.geometry('640x480')
 
 # 開啟圖片並在 Canvas 中顯示圖片
 def show(path):
