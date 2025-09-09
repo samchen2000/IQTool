@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>條碼技術互動指南</title>
+    <!-- Chosen Palette: Neutral Tech -->
+    <!-- Application Structure Plan: A single-page, thematic dashboard with vertical scrolling and a top navigation bar. The structure is: 1. Introduction, 2. Interactive 1D vs. 2D Explorer where users can click tabs to see different barcode types, 3. A visual Head-to-Head Comparison with a dynamic chart, 4. An application grid, and 5. Future Trends. This structure was chosen to transform the linear presentation into an engaging, non-linear learning tool. It encourages users to actively compare and explore information, which is more effective for understanding than passively viewing slides. -->
+    <!-- Visualization & Content Choices: 1. Barcode Types (UPC, QR etc.) -> Goal: Organize/Inform -> Viz: Interactive tabs with dynamic content panes -> Interaction: Click to update details, visuals, and key facts -> Justification: Allows direct comparison of different barcode types within a single, consolidated view -> Method: JavaScript DOM manipulation. 2. 1D vs 2D Comparison -> Goal: Compare -> Viz: Chart.js Bar Chart -> Interaction: Static but clear visual data representation -> Justification: Provides a quick, high-level quantitative comparison of key differences (e.g., data capacity) -> Library: Chart.js/Canvas. 3. Applications -> Goal: Inform -> Viz: A grid of cards with icons -> Interaction: Hover effects -> Justification: A visually appealing and easily scannable way to present categorical information -> Method: HTML/Tailwind with Unicode characters for icons. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; scroll-behavior: smooth; }
+        .nav-link { transition: color 0.3s, border-color 0.3s; }
+        .nav-link.active { color: #2563eb; border-bottom-color: #2563eb; }
+        .barcode-tab.active { background-color: #3b82f6; color: white; }
+        .content-fade-enter { opacity: 0; transform: translateY(10px); }
+        .content-fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 350px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-900">條碼技術指南</h1>
+            <div class="hidden md:flex space-x-8">
+                <a href="#intro" class="nav-link pb-1 border-b-2 border-transparent text-gray-600 hover:text-blue-600">簡介</a>
+                <a href="#explorer" class="nav-link pb-1 border-b-2 border-transparent text-gray-600 hover:text-blue-600">條碼瀏覽器</a>
+                <a href="#comparison" class="nav-link pb-1 border-b-2 border-transparent text-gray-600 hover:text-blue-600">特性比較</a>
+                <a href="#applications" class="nav-link pb-1 border-b-2 border-transparent text-gray-600 hover:text-blue-600">應用領域</a>
+                <a href="#future" class="nav-link pb-1 border-b-2 border-transparent text-gray-600 hover:text-blue-600">未來趨勢</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-6 md:p-10">
+        
+        <section id="intro" class="my-12 text-center">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">解密一維碼與二維碼</h2>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                歡迎來到條碼技術互動指南。條碼是一種將資訊轉化為機器可讀取光學圖形的技術，旨在快速、準確地識別與追蹤物件。本頁面將帶您深入了解一維碼與二維碼的核心差異、技術原理與實際應用。
+            </p>
+        </section>
+
+        <section id="explorer" class="my-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">條碼互動瀏覽器</h2>
+                <p class="text-md text-gray-600">點擊下方的標籤，探索不同類型的條碼及其特性。</p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                <div id="barcode-1d-explorer" class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold mb-4 text-center">一維條碼 (1D)</h3>
+                    <p class="text-center text-gray-600 mb-6">又稱線性條碼，將資料編碼於一系列寬度不同的平行線條與空間中，需連接資料庫使用。</p>
+                    <div id="tabs-1d" class="flex flex-wrap justify-center gap-2 mb-6"></div>
+                    <div id="content-1d" class="border-t pt-6 min-h-[250px]"></div>
+                </div>
+
+                <div id="barcode-2d-explorer" class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold mb-4 text-center">二維條碼 (2D)</h3>
+                    <p class="text-center text-gray-600 mb-6">又稱矩陣碼，將資料儲存在二維圖形中，容量大且具備容錯能力，可獨立儲存資訊。</p>
+                    <div id="tabs-2d" class="flex flex-wrap justify-center gap-2 mb-6"></div>
+                    <div id="content-2d" class="border-t pt-6 min-h-[250px]"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison" class="my-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">特性比較：1D vs 2D</h2>
+                <p class="text-md text-gray-600">透過視覺化圖表，快速了解兩者在關鍵特性上的差異。</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                 <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="applications" class="my-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">多元的應用領域</h2>
+                <p class="text-md text-gray-600">條碼技術已深入各行各業，成為現代商業運作的基石。</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg text-center transition-transform hover:scale-105">
+                    <span class="text-4xl mb-3 block">🛒</span>
+                    <h4 class="font-bold text-lg">零售業</h4>
+                    <p class="text-sm text-gray-600">POS結帳、庫存管理</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg text-center transition-transform hover:scale-105">
+                    <span class="text-4xl mb-3 block">📦</span>
+                    <h4 class="font-bold text-lg">物流倉儲</h4>
+                    <p class="text-sm text-gray-600">包裹追蹤、貨物分類</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg text-center transition-transform hover:scale-105">
+                    <span class="text-4xl mb-3 block">🏭</span>
+                    <h4 class="font-bold text-lg">製造業</h4>
+                    <p class="text-sm text-gray-600">產線追蹤、零件管理</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg text-center transition-transform hover:scale-105">
+                    <span class="text-4xl mb-3 block">⚕️</span>
+                    <h4 class="font-bold text-lg">醫療保健</h4>
+                    <p class="text-sm text-gray-600">病患識別、藥品追蹤</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg text-center transition-transform hover:scale-105">
+                    <span class="text-4xl mb-3 block">🎟️</span>
+                    <h4 class="font-bold text-lg">票務交通</h4>
+                    <p class="text-sm text-gray-600">電子機票、活動入場券</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg text-center transition-transform hover:scale-105">
+                    <span class="text-4xl mb-3 block">💳</span>
+                    <h4 class="font-bold text-lg">行銷與支付</h4>
+                    <p class="text-sm text-gray-600">行動支付、資訊連結</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="future" class="my-16 scroll-mt-20">
+             <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">總結與未來趨勢</h2>
+                <p class="text-md text-gray-600">條碼技術持續演進，將在數位世界中扮演更重要的角色。</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div class="bg-blue-50 p-6 rounded-xl">
+                    <h4 class="font-bold text-lg text-blue-800 mb-2">一維碼總結</h4>
+                    <p>簡單、成熟、成本低，在商品標識領域仍不可或缺。</p>
+                </div>
+                 <div class="bg-green-50 p-6 rounded-xl">
+                    <h4 class="font-bold text-lg text-green-800 mb-2">二維碼總結</h4>
+                    <p>功能強大、資訊豐富，引領了行動應用與資訊互動的革命。</p>
+                </div>
+            </div>
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+                <div class="text-center">
+                    <span class="text-3xl mb-2 block">🌐</span>
+                    <h5 class="font-semibold">與物聯網 (IoT) 結合</h5>
+                    <p class="text-sm text-gray-600">賦予每個物品獨特的數位身份。</p>
+                </div>
+                 <div class="text-center">
+                    <span class="text-3xl mb-2 block">🎨</span>
+                    <h5 class="font-semibold">隱形條碼</h5>
+                    <p class="text-sm text-gray-600">嵌入產品包裝，不影響美觀。</p>
+                </div>
+                 <div class="text-center">
+                    <span class="text-3xl mb-2 block">🔒</span>
+                    <h5 class="font-semibold">更高安全性</h5>
+                    <p class="text-sm text-gray-600">加入加密技術，防止偽造。</p>
+                </div>
+                 <div class="text-center">
+                    <span class="text-3xl mb-2 block">🚀</span>
+                    <h5 class="font-semibold">更多樣的應用</h5>
+                    <p class="text-sm text-gray-600">擴展到AR、身份驗證等新領域。</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-gray-800 text-white text-center p-4 mt-12">
+        <p>&copy; 2025 條碼技術互動指南. All rights reserved.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const barcodeData = {
+                '1d': [
+                    { id: 'upc', name: 'UPC', fullName: '(通用產品碼)', description: '主要用於北美地區的零售商品，由12位數字組成。' },
+                    { id: 'ean', name: 'EAN', fullName: '(歐洲商品編碼)', description: '全球通用的零售商品碼，最常見的是13位數字的EAN-13。' },
+                    { id: 'code128', name: 'Code 128', description: '高密度條碼，可表示所有128個ASCII字元，廣泛用於物流、倉儲與運輸業。' },
+                    { id: 'code39', name: 'Code 39', description: '可表示數字、大寫字母與一些特殊符號，常用於工業、軍事及政府機構。' }
+                ],
+                '2d': [
+                    { id: 'qrcode', name: 'QR Code', fullName: '(快速回應碼)', description: '最普及的2D碼。應用於行動支付、網站連結、廣告行銷、電子票證等，讀取速度快。' },
+                    { id: 'datamatrix', name: 'Data Matrix', description: '尺寸非常小，適合用於標記電子零件、醫療器材等小型物件。' },
+                    { id: 'pdf417', name: 'PDF417', description: '堆疊式條碼，容量大。常用於身分證件、運輸標籤、登機證等需儲存大量個資的場合。' },
+                    { id: 'aztec', name: 'Aztec Code', description: '中央有像金字塔的「尋找器圖案」。常用於火車票、船票等運輸系統票證。' }
+                ]
+            };
+            
+            function createBarcodeVisual(type, id) {
+                const container = document.createElement('div');
+                container.className = 'mx-auto my-4 flex items-center justify-center';
+                if (type === '1d') {
+                    container.style.height = '60px';
+                    container.className += ' space-x-px';
+                    for(let i = 0; i < 25; i++) {
+                        const bar = document.createElement('div');
+                        bar.className = 'bg-gray-800';
+                        bar.style.width = `${Math.random() * 2 + 1}px`;
+                        bar.style.height = `${Math.random() * 40 + 20}px`;
+                        container.appendChild(bar);
+                    }
+                } else {
+                    container.style.width = '100px';
+                    container.style.height = '100px';
+                    container.className += ' grid grid-cols-10 gap-px bg-gray-200 p-1';
+                    for(let i = 0; i < 100; i++) {
+                        const cell = document.createElement('div');
+                        cell.className = Math.random() > 0.4 ? 'bg-gray-800' : 'bg-white';
+                        container.appendChild(cell);
+                    }
+                }
+                return container.outerHTML;
+            }
+
+            function setupExplorer(type) {
+                const tabsContainer = document.getElementById(`tabs-${type}`);
+                const contentContainer = document.getElementById(`content-${type}`);
+                const data = barcodeData[type];
+
+                data.forEach((item, index) => {
+                    const button = document.createElement('button');
+                    button.textContent = item.name;
+                    button.className = 'barcode-tab px-4 py-2 text-sm font-semibold rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors';
+                    button.dataset.id = item.id;
+                    tabsContainer.appendChild(button);
+
+                    if (index === 0) {
+                        button.classList.add('active');
+                        updateContent(type, item.id);
+                    }
+                });
+
+                tabsContainer.addEventListener('click', (e) => {
+                    if (e.target.matches('.barcode-tab')) {
+                        const id = e.target.dataset.id;
+                        tabsContainer.querySelector('.active').classList.remove('active');
+                        e.target.classList.add('active');
+                        updateContent(type, id);
+                    }
+                });
+            }
+
+            function updateContent(type, id) {
+                const contentContainer = document.getElementById(`content-${type}`);
+                const item = barcodeData[type].find(d => d.id === id);
+                if (!item) return;
+
+                const contentHTML = `
+                    <div class="text-center content-fade-enter">
+                        <h4 class="text-xl font-bold text-gray-900">${item.name} ${item.fullName || ''}</h4>
+                        <p class="text-gray-600 my-3">${item.description}</p>
+                        ${createBarcodeVisual(type, id)}
+                    </div>
+                `;
+                
+                contentContainer.innerHTML = contentHTML;
+                setTimeout(() => {
+                    contentContainer.firstElementChild.classList.add('content-fade-enter-active');
+                }, 10);
+            }
+
+            setupExplorer('1d');
+            setupExplorer('2d');
+            
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['資料容量', '資訊密度', '讀取方向性', '錯誤校正能力', '資料庫依賴度'],
+                    datasets: [{
+                        label: '一維條碼 (1D)',
+                        data: [2, 2, 1, 1, 5],
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: '二維條碼 (2D)',
+                        data: [5, 5, 5, 4, 2],
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 5,
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    const labels = ['極低', '低', '中', '高', '極高'];
+                                    return labels[value-1] || '';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { enabled: false },
+                        title: {
+                            display: true,
+                            text: '1D vs. 2D 條碼特性評分 (1=低, 5=高)',
+                            padding: { top: 10, bottom: 20 },
+                            font: { size: 16 }
+                        }
+                    }
+                }
+            });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section');
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 80) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').includes(current)) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -260,12 +260,14 @@ class ImageAnalyzerApp:
             if orig_x1 >= orig_x2 or orig_y1 >= orig_y2:
                 avg_r, avg_g, avg_b, avg_lum = 0, 0, 0, 0
             else:
+                avg_ium_1 = 0
                 roi = self.adjusted_image_np[orig_y1:orig_y2, orig_x1:orig_x2]
                 avg_colors = np.mean(roi, axis=(0, 1))
                 avg_r, avg_g, avg_b = avg_colors
                 avg_lum = 0.2126 * avg_r + 0.7152 * avg_g + 0.0722 * avg_b
+                difference = avg_lum - avg_ium_1
             
-            result_str = f"方框 {i+1:<2} | Avg RGB: ({avg_r:6.1f}, {avg_g:6.1f}, {avg_b:6.1f}) | 亮度: {avg_lum:6.1f}"
+            result_str = f"方框 {i+1:<2} | Avg RGB: ({avg_r:6.1f}, {avg_g:6.1f}, {avg_b:6.1f}) | 亮度: {avg_lum:6.1f} | {difference:6.1f}"
             results.append(result_str)
 
         self.result_text.config(state=tk.NORMAL)
