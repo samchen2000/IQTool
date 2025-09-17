@@ -1,0 +1,6 @@
+google-genai
+python-dotenv
+flask
+gunicorn
+line-bot-sdk
+requests

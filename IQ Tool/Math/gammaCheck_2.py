@@ -54,7 +54,7 @@ class ImageAnalyzerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("圖片區域分析與調整工具 (v3)")
-        self.root.geometry("1200x850")
+        self.root.geometry("1080x720")
 
         # --- 變數初始化 ---
         self.original_image_np = None
@@ -88,7 +88,7 @@ class ImageAnalyzerApp:
         left_frame = Frame(main_frame)
         left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.canvas_width, self.canvas_height = 800, 600
+        self.canvas_width, self.canvas_height = 600, 450
         self.canvas = tk.Canvas(left_frame, width=self.canvas_width, height=self.canvas_height, bg='gray', relief=tk.SUNKEN, borderwidth=2)
         self.canvas.pack(side=tk.TOP, anchor=tk.NW)
 
@@ -115,7 +115,7 @@ class ImageAnalyzerApp:
         Button(settings_frame, text="更新方框數量", command=self.recreate_interactive_rects).pack(fill=tk.X, pady=(0, 20))
 
         # 影像調整滑桿
-        Label(settings_frame, text="影像調整", font=("Arial", 12, "bold")).pack(pady=10)
+        Label(settings_frame, text="影像調整", font=("Arial", 9, "bold")).pack(pady=10)
         self.create_adjuster_slider(settings_frame, "亮度 (Brightness)", self.brightness_adjust)
         self.create_adjuster_slider(settings_frame, "紅色 (R)", self.r_adjust)
         self.create_adjuster_slider(settings_frame, "綠色 (G)", self.g_adjust)

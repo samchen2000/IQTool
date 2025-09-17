@@ -6,18 +6,23 @@ import os
 # 初始化 OpenAI 客戶端（會從環境變數讀取 API key）
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 建立主視窗
 root = tk.Tk()
 root.title("ChatGPT GUI")
 root.geometry("600x500")
 
-# 聊天紀錄框
-chat_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, state="disabled", font=("Microsoft JhengHei", 12))
-chat_box.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+# 上方輸入框區塊
+input_frame = tk.Frame(root)
+input_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
 
-# 輸入框
-entry = tk.Entry(root, font=("Microsoft JhengHei", 12))
-entry.pack(padx=10, pady=5, fill=tk.X)
+entry = tk.Entry(input_frame, font=("Microsoft JhengHei", 12))
+entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+send_btn = tk.Button(input_frame, text="發送", command=lambda: send_message(), font=("Microsoft JhengHei", 12))
+send_btn.pack(side=tk.LEFT, padx=5)
+
+# 下方聊天紀錄框
+chat_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, state="disabled", font=("Microsoft JhengHei", 12))
+chat_box.pack(side=tk.BOTTOM, padx=10, pady=10, fill=tk.BOTH, expand=True)
 
 # 發送訊息函式
 def send_message():
@@ -39,7 +44,7 @@ def send_message():
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "你是一個有幫助的助手"},
+                {"role": "system", "content": "你是一個熱心幫助的助手,可以建立表格,並提供表格說明,也會提供參考資料的網址去查詢"},
                 {"role": "user", "content": user_message}
             ]
         )
@@ -55,11 +60,6 @@ def send_message():
     except Exception as e:
         messagebox.showerror("錯誤", str(e))
 
-# 發送按鈕
-send_btn = tk.Button(root, text="發送", command=send_message, font=("Microsoft JhengHei", 12))
-send_btn.pack(pady=5)
-
-# 按 Enter 也能發送
 root.bind("<Return>", lambda event: send_message())
 
 # 設定文字顏色樣式
