@@ -19,7 +19,7 @@ def index():
     <html lang="zh-TW">
     <head>
         <meta charset="UTF-8">
-        <title>Gemini 小助手 Chatbot</title>
+        <title>Sam Gemini小助手 Chatbot</title>
         <style>
             body { font-family: Arial, sans-serif; background: #f5f5f5; }
             .container { max-width: 900px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 10px; box-shadow: 0 2px 8px #ccc; }
@@ -33,7 +33,7 @@ def index():
     </head>
     <body>
         <div class="container">
-            <h1>Gemini 小助手 Chatbot</h1>
+            <h1>Sam Gemini小助手 Chatbot</h1>
             <input type="text" id="question" placeholder="請輸入您的問題..." />
             <div>
                 <button class="btn btn-start" onclick="startChat()">開始</button>
