@@ -27,6 +27,7 @@
 # =============================================================================
 
 import tkinter as tk
+#from scipy.optimize import minimize #
 from tkinter import ttk, filedialog, messagebox
 try:
     from PIL import Image, ImageTk, ImageEnhance, ImageOps, __version__ as PIL_VERSION
