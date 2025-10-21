@@ -172,61 +172,44 @@ class ImageAnalysisTool:
         update_cam()
 
     def open_ip_stream(self):
+        # 預留 IP 串流功能
+        # messagebox.showinfo("尚未實作", "IP串流功能尚未實作")
         import threading, cv2
         if hasattr(self, 'ip_frame') and self.ip_frame.winfo_exists():
             self.ip_frame.destroy()
-        self.ip_frame = ttk.LabelFrame(self.right_frame, text="IP 串流 (RTSP)")
+        self.ip_frame = ttk.LabelFrame(self.right_frame, text="IP 串流 URL")
         self.ip_frame.pack(fill=tk.X, padx=10, pady=5)
         self.ip_url_var = tk.StringVar(value="rtsp://192.168.0.100:8550/video")
         ip_entry = ttk.Entry(self.ip_frame, textvariable=self.ip_url_var, width=40)
         ip_entry.pack(side=tk.LEFT, padx=5, pady=5)
-        confirm_btn = ttk.Button(self.ip_frame, text="確定", command=self.start_ip_stream)
-        confirm_btn.pack(side=tk.LEFT, padx=5)
-        # 顯示影像區塊
-        self.ip_canvas = tk.Canvas(self.ip_frame, width=320, height=240, bg='black')
-        self.ip_canvas.pack(side=tk.RIGHT, padx=5, pady=5)
-
-    def start_ip_stream(self):
-        import threading, cv2
-        url = self.ip_url_var.get().strip()
-        if not (url.startswith("rtsp://") or url.startswith("http://") or url.startswith("https://")):
-            messagebox.showerror("錯誤", "請輸入有效的 RTSP 或 HTTP 串流位址")
-            return
-        if hasattr(self, 'ip_running') and self.ip_running:
-            messagebox.showwarning("警告", "IP 串流已在運行中")
-            return
-        self.ip_running = True
-        def ip_thread():
-            self.ip_cap = cv2.VideoCapture(url)
-            if not self.ip_cap.isOpened():
-                self.ip_running = False
-                messagebox.showerror("連線失敗", "無法連線到指定的 RTSP/HTTP 串流位址！")
+        def start_ip_stream():
+            url = self.ip_url_var.get().strip()
+            if not url.startswith("http"):
+                messagebox.showerror("錯誤", "請輸入有效的 IP 串流 URL")
                 return
-            while self.ip_running:
-                ret, frame = self.ip_cap.read()
-                if ret:
-                    import PIL.Image, PIL.ImageTk
-                    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    pil_img = PIL.Image.fromarray(img)
-                    pil_img = pil_img.resize((320, 240))
-                    self.ip_imgtk = PIL.ImageTk.PhotoImage(pil_img)
-                    if hasattr(self, 'ip_canvas') and self.ip_canvas.winfo_exists():
-                        self.ip_canvas.create_image(0, 0, anchor=tk.NW, image=self.ip_imgtk)
-                    self.image_for_processing = pil_img.resize((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT))
-                    self.update_display()
-                else:
-                    break
-            if hasattr(self, 'ip_cap') and self.ip_cap:
-                self.ip_cap.release()
-        threading.Thread(target=ip_thread, daemon=True).start()
-
-    def close_ip_stream(self):
-        if hasattr(self, 'ip_running') and self.ip_running:
-            self.ip_running = False
-            if hasattr(self, 'ip_cap') and self.ip_cap:
-                self.ip_cap.release()
-        if hasattr(self, 'ip_frame') and self.ip_frame.winfo_exists():
-            self.ip_frame.destroy()
+            if hasattr(self, 'ip_running') and self.ip_running:
+                messagebox.showwarning("警告", "IP 串流已在運行中")
+                return
+            self.ip_running = True
+            def ip_thread():
+                self.ip_cap = cv2.VideoCapture(url)
+                while self.ip_running:
+                    ret, frame = self.ip_cap.read()
+                    if ret:
+                        import PIL.Image, PIL.ImageTk
+                        img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        pil_img = PIL.Image.fromarray(img)
+                        pil_img = pil_img.resize((320, 240))
+                        self.ip_imgtk = PIL.ImageTk.PhotoImage(pil_img)
+                        if hasattr(self, 'ip_canvas') and self.ip_canvas.winfo_exists():
+                            self.ip_canvas.create_image(0, 0, anchor=tk.NW, image=self.ip_imgtk)
+                        self.image_for_processing = pil_img.resize((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT))
+                        self.update_display()
+                    else:
+                        break
+                if hasattr(self, 'ip_cap') and self.ip_cap:
+                    self.ip_cap.release()
+            threading.Thread(target=ip_thread, daemon=True).start()
     
     def close_ip_stream(self):
         ## 預留 關閉IP 串流功能
@@ -503,16 +486,30 @@ class ImageAnalysisTool:
                     variance = np.var(gray)
                 results_text += f"BOX #{box.number:<2}: Brenner={brenner:8.2f}, Tenengrad={tenengrad:8.2f}, Laplace={laplace:8.2f}, Variance={variance:8.2f}\n"
         else:
-            results_text = "分析框數據 (Avg R, G, B, Brightness):\n========================================\n"
+            results_text = "分析框數據 (Avg R, G, B, Brightness, Lab):\n========================================\n"
+            try:
+                import cv2
+            except ImportError:
+                cv2 = None
             for box in self.analysis_boxes:
                 coords = [int(c) for c in box.get_coords()]; x1, y1, x2, y2 = coords
                 x1 = max(0, x1); y1 = max(0, y1); x2 = min(self.DISPLAY_WIDTH, x2); y2 = min(self.DISPLAY_HEIGHT, y2)
-                if x1 >= x2 or y1 >= y2: avg_r, avg_g, avg_b, avg_lum = 0, 0, 0, 0
+                if x1 >= x2 or y1 >= y2:
+                    avg_r = avg_g = avg_b = avg_lum = avg_L = avg_a = avg_b_lab = 0
                 else:
-                    roi = image_np[y1:y2, x1:x2]; avg_colors = np.mean(roi, axis=(0, 1))
+                    roi = image_np[y1:y2, x1:x2]
+                    avg_colors = np.mean(roi, axis=(0, 1))
                     avg_r, avg_g, avg_b = avg_colors[0], avg_colors[1], avg_colors[2]
                     avg_lum = 0.2126 * avg_r + 0.7152 * avg_g + 0.0722 * avg_b
-                results_text += f"BOX #{box.number:<2}: R={avg_r:6.2f}, G={avg_g:6.2f}, B={avg_b:6.2f}, Lum={avg_lum:6.2f}\n"
+                    # Lab 計算
+                    if cv2 is not None:
+                        roi_bgr = roi[..., ::-1].astype(np.uint8) # RGB to BGR
+                        roi_lab = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2LAB)
+                        avg_lab = np.mean(roi_lab, axis=(0, 1))
+                        avg_L, avg_a, avg_b_lab = avg_lab[0], avg_lab[1], avg_lab[2]
+                    else:
+                        avg_L = avg_a = avg_b_lab = 0
+                results_text += f"BOX #{box.number:<2}: R={avg_r:6.2f}, G={avg_g:6.2f}, B={avg_b:6.2f}, Lum={avg_lum:6.2f}, L*={avg_L:6.2f}, a={avg_a:6.2f}, b={avg_b_lab:6.2f}\n"
         self.text_results.config(state='normal'); self.text_results.delete(1.0, tk.END)
         self.text_results.insert(tk.END, results_text); self.text_results.config(state='disabled')
 
