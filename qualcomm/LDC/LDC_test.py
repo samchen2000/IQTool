@@ -7,113 +7,77 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 
 # --- 1. 光學/數學核心計算函數 ---
-
 def calculate_distortion(img_path, pattern_size, square_size_mm):
     """
-    計算幾何失真場和 TV Distortion 值。
-    
-    Args:
-        img_path (str): 圖像文件路徑。
-        pattern_size (tuple): 檢測的格點內角點數量 (cols, rows)。
-        square_size_mm (float): 棋盤格單元格邊長 (用於輸出報告, 不影響像素計算)。
-
-    Returns:
-        tuple: (max_tv_distortion, distortion_map_data)
-               max_tv_distortion (float): TV 失真百分比。
-               distortion_map_data (dict): 包含 ideal_points, actual_points, vectors 等視覺化數據。
+    計算幾何失真場和 TV Distortion 值（穩健版）。
     """
-    
     img = cv2.imread(img_path)
     if img is None:
         raise FileNotFoundError(f"無法讀取文件: {img_path}")
-        
+
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     h, w = gray.shape[:2]
-    
-    # 1. 檢測格點 (Find Chessboard Corners)
-    # objp: 理想的3D點 (Z=0, 為了校準, 但我們只關心像素座標)
-    objp = np.zeros((pattern_size[0] * pattern_size[1], 3), np.float32)
-    objp[:, :2] = np.mgrid[0:pattern_size[0], 0:pattern_size[1]].T.reshape(-1, 2)
-    
-    # 尋找角點
-    ret, actual_points = cv2.findChessboardCorners(gray, pattern_size, None)
 
+    cols, rows = pattern_size
+    # 1. 建立物體點（以實際單位 mm）
+    objp = np.zeros((cols * rows, 3), np.float32)
+    objp[:, :2] = np.mgrid[0:cols, 0:rows].T.reshape(-1, 2) * square_size_mm
+
+    # 2. 找角點
+    flags = cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE
+    ret, corners = cv2.findChessboardCorners(gray, (cols, rows), flags)
     if not ret:
         raise ValueError("未能成功檢測到足夠的格點角點。請檢查圖像和 '格點尺寸' 設置。")
 
-    # 精化角點位置
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-    actual_points = cv2.cornerSubPix(gray, actual_points, (11, 11), (-1, -1), criteria)
-    
-    # 2. 確定理想格點位置 (Ideal Grid Position)
-    # 使用仿射變換 (Affine Transformation) 或透視變換 (Homography)
-    # 找到實際點與理想格點座標系之間的最優映射。
-    
-    # 由於校準過程複雜，這裡簡化處理：假設 ideal_points 是在實際點上擬合的完美直線網格
-    # 理想格點的 (0,0) 點是第一個角點，然後簡單地計算等距點。
-    # 更準確的方法是：先用 cv2.calibrateCamera 得到相機矩陣 K 和失真係數 D，然後使用 D=0 重新投影 objp 得到 ideal_points。
-    
-    # 簡化計算：只進行平面擬合 (更健壯的方法請參考 OpenCV 相機校準文檔)
-    
-    # 假設理想格點是等間距的，擬合一個平面。
-    # 找到四個角點的實際位置，用來計算 Homography
-    
-    # 理想格點在 normalized 座標下的位置 (用於 Homography)
-    ideal_norm = objp[0:pattern_size[0]*pattern_size[1]:pattern_size[0]*pattern_size[1]-1:1][:,:2]
-    
-    # 實際格點在圖像座標下的位置 (四個角點)
-    actual_corners = np.array([
-        actual_points[0][0], # 左上
-        actual_points[pattern_size[0]-1][0], # 右上
-        actual_points[pattern_size[0]*(pattern_size[1]-1)][0], # 左下
-        actual_points[pattern_size[0]*pattern_size[1]-1][0]  # 右下
-    ], dtype='float32')
-    
-    # 從理想的 2D 點 (格點索引) 到實際的 2D 點 (像素) 計算 Homography
-    H, mask = cv2.findHomography(objp[:,:2].astype(np.float32), actual_points.reshape(-1, 2).astype(np.float32))
-    
-    # 創建理想的格點索引 (作為輸入)
-    ideal_grid_indices = objp[:,:2].astype(np.float32).reshape(-1, 1, 2)
-    
-    # 使用 Homography 變換來計算理想像素位置 (在沒有失真下的位置)
-    ideal_points_warped = cv2.perspectiveTransform(ideal_grid_indices, H)
-    ideal_points = ideal_points_warped.reshape(-1, 2)
+    corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+    imgpoints = corners.reshape(-1, 1, 2).astype(np.float32)
 
-    actual_points = actual_points.reshape(-1, 2)
-    
-    # 3. 計算失真向量
+    # 嘗試使用 calibrateCamera 計算相機參數，然後以 zero distortion 投影取得 ideal_points
+    ideal_points = None
+    try:
+        objpoints_list = [objp.astype(np.float32)]
+        imgpoints_list = [imgpoints]
+        retval, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
+            objpoints_list, imgpoints_list, (w, h), None, None
+        )
+        if retval and len(rvecs) > 0:
+            zero_dist = np.zeros_like(dist_coeffs)
+            proj, _ = cv2.projectPoints(objp.astype(np.float32), rvecs[0], tvecs[0], camera_matrix, zero_dist)
+            ideal_points = proj.reshape(-1, 2)
+    except Exception:
+        ideal_points = None
+
+    # fallback: 若 calibrateCamera 失敗，使用 Homography 近似
+    if ideal_points is None:
+        H, mask = cv2.findHomography(objp[:, :2].astype(np.float32), imgpoints.reshape(-1, 2).astype(np.float32))
+        ideal_pts_warped = cv2.perspectiveTransform(objp[:, :2].astype(np.float32).reshape(-1, 1, 2), H)
+        ideal_points = ideal_pts_warped.reshape(-1, 2)
+
+    actual_points = imgpoints.reshape(-1, 2)
+
+    # 計算失真向量與 TV 指標
     distortion_vectors = actual_points - ideal_points
-    
-    # 4. 計算 TV 失真
-    
-    # 圖像中心點 (Principal Point approximation)
-    cx, cy = w / 2, h / 2
-    
-    # 徑向距離 (理想) 和徑向失真 (Radial Distortion)
-    radial_dist_ideal = np.sqrt((ideal_points[:, 0] - cx)**2 + (ideal_points[:, 1] - cy)**2)
-    
-    # 計算失真向量在徑向上的分量 (失真在徑向上的投影)
-    # 單位徑向向量 (從中心指向理想點)
-    radial_unit_vector = (ideal_points - np.array([cx, cy])) / radial_dist_ideal[:, np.newaxis]
-    
-    # 徑向失真 $d_r$ = 點積 (失真向量 . 單位徑向向量)
+    cx, cy = w / 2.0, h / 2.0
+    radial_dist_ideal = np.sqrt((ideal_points[:, 0] - cx) ** 2 + (ideal_points[:, 1] - cy) ** 2)
+
+    # 加入 epsilon 保護以避免除以零
+    eps = 1e-8
+    radial_unit_vector = np.zeros_like(distortion_vectors)
+    valid_mask = radial_dist_ideal > eps
+    if np.any(valid_mask):
+        radial_unit_vector[valid_mask] = (ideal_points[valid_mask] - np.array([cx, cy])) / radial_dist_ideal[valid_mask][:, None]
+
     radial_distortion = np.sum(distortion_vectors * radial_unit_vector, axis=1)
-    
-    # 找出最大的徑向偏差 $|d_r|$
-    max_radial_deviation = np.max(np.abs(radial_distortion))
-    
-    # 找出該最大偏差對應的理想徑向距離 $r_{\max}$
-    max_idx = np.argmax(np.abs(radial_distortion))
-    r_max = radial_dist_ideal[max_idx]
-    
+    max_radial_deviation = np.max(np.abs(radial_distortion)) if radial_distortion.size > 0 else 0.0
+    max_idx = int(np.argmax(np.abs(radial_distortion))) if radial_distortion.size > 0 else 0
+    r_max = radial_dist_ideal[max_idx] if radial_dist_ideal.size > 0 else 0.0
+
     if r_max == 0:
-        # 避免除以零，通常只發生在中心點
         max_tv_distortion = 0.0
     else:
-        # TV Distortion (%) = 100 * |dr_max| / r_max
-        max_tv_distortion = 100 * max_radial_deviation / r_max
-        
-    # 數據包裝
+        max_tv_distortion = 100.0 * max_radial_deviation / r_max
+
     distortion_map_data = {
         'img_size': (w, h),
         'cx_px': cx,
@@ -125,61 +89,50 @@ def calculate_distortion(img_path, pattern_size, square_size_mm):
         'r_max': r_max,
         'max_idx': max_idx
     }
-    
+
     return max_tv_distortion, distortion_map_data
 
-# --- 2. 視覺化函數 ---
 
 def plot_distortion(img_path, distortion_data, tv_distortion_val, ax):
-    """
-    在 Matplotlib Axes 上繪製失真場和 TV 判定線。
-    """
-    
+    """在給定的 matplotlib Axes 上繪製失真向量與 TV 判定圓。"""
     img = cv2.imread(img_path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # Matplotlib 讀取 RGB
-    h, w = img.shape[:2]
-    
+    if img is None:
+        raise FileNotFoundError(f"無法讀取文件: {img_path}")
+
+    w, h = distortion_data['img_size']
     ideal = distortion_data['ideal_points']
     vectors = distortion_data['vectors']
-    cx, cy = distortion_data['cx_px'], distortion_data['cy_px']
+    cx = distortion_data['cx_px']
+    cy = distortion_data['cy_px']
     r_max = distortion_data['r_max']
-    max_idx = distortion_data['max_idx']
-    
-    ax.clear()
-    ax.imshow(img)
-    ax.set_title(f"Geometric Distortion Map & TV Distortion ({tv_distortion_val:.3f}%)", fontsize=10)
-    
-    # 繪製失真場向量 (Quiver Plot)
-    # U, V 是向量的 X, Y 分量
+    max_idx = int(distortion_data['max_idx'])
+
     U = vectors[:, 0]
     V = vectors[:, 1]
-    
-    # 繪製向量，顏色深度表示向量大小
-    vector_magnitudes = np.sqrt(U**2 + V**2)
-    
-    Q = ax.quiver(
-        ideal[:, 0], ideal[:, 1], U, V, 
-        vector_magnitudes, # 用於顏色映射
-        angles='xy', scale_units='xy', scale=1, 
+    vector_magnitudes = np.sqrt(U ** 2 + V ** 2)
+
+    ax.clear()
+    # BGR -> RGB for plotting
+    ax.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    ax.set_title(f"Geometric Distortion Map & TV Distortion ({tv_distortion_val:.3f}%)", fontsize=10)
+
+    ax.quiver(
+        ideal[:, 0], ideal[:, 1], U, V,
+        vector_magnitudes,
+        angles='xy', scale_units='xy', scale=1,
         cmap='jet', width=0.005, headwidth=5, headlength=7, alpha=0.8
     )
-    
-    # 繪製中心點
+
     ax.plot(cx, cy, 'ro', markersize=5, label='Image Center')
-    
-    # 繪製 TV 判定線：以 r_max 為半徑的圓
-    # 該圓通過最大徑向失真點的理想位置
+
     if r_max > 0:
-        # 繪製 TV 失真判定圓
         circle = plt.Circle((cx, cy), r_max, color='r', fill=False, linestyle='--', linewidth=1.5, label=f'TV Max Radius ({r_max:.1f} px)')
         ax.add_artist(circle)
-        
-        # 標記最大失真點
         ax.plot(ideal[max_idx, 0], ideal[max_idx, 1], 'co', markersize=8, label='Max Distortion Point')
-    
+
     ax.legend(fontsize=7, loc='lower left')
     ax.set_xlim(0, w)
-    ax.set_ylim(h, 0) # 圖像座標系 Y 軸反轉
+    ax.set_ylim(h, 0)
     ax.set_aspect('equal', adjustable='box')
     ax.tick_params(labelsize=8)
     ax.figure.canvas.draw_idle()
