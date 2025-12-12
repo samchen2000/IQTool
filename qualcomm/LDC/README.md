@@ -186,3 +186,17 @@ dot_chart_calib.exe Calib calib.cfg ldc_output.bin
 | 3. 校正執行   | dot_chart_calib.exe Calib  | calib.cfg + images | ldc_curve.bin    |
 | 4. 結果解析   | dot_chart_calib.exe Parse  | ldc_curve.bin      | ldc_curve.txt    |
 | 5. 驗證     | LdcTool                    | 驗證影像               | 去畸變影像            |
+
+
+## 參考文件
+VD80-P9301-177
+
+VD80-P9301-60E
+
+VD80-PH032-5SC
+
+KBA-190925195819
+
+KBA-240514005702
+
+80-PK882-31 (ICA)
