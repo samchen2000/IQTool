@@ -31,13 +31,13 @@ SNR (Signal-to-Noise Ratio, 信噪比):
 視覺噪聲 (Visual Noise): 考慮了人眼對不同顏色和空間頻率噪聲的敏感度，通常以 $V_{N}$ 表示。  
 動態範圍 (Dynamic Range, DR): 系統能區分的最亮和最暗區域之間的亮度範圍。通常以 $\text{dB}$ 或光圈數 (stops) 表示。最大可接受信噪比下的動態範圍 (DR-SNR): 在特定 SNR 閾值下計算的動態範圍。
 ### 3. 色彩準確度 (Color Accuracy)色彩準確度評估系統再現真實世界顏色的能力。  
-測試方法/圖卡:  
+- 測試方法/圖卡:  
 ColorChecker 24 (經典色卡): 或 ColorChecker SG (半光澤圖卡)。  
 關鍵指標:  
 色差 ($\Delta E$):   
 衡量實際顏色與理想顏色之間的差異。$\Delta E$ 數值越小，色彩越準確。$\Delta E\ 2000$ (CIE $\text{DE}2000$): 目前最常用的色差公式。色彩飽和度 (Saturation): 影像中顏色的鮮豔程度。白平衡誤差 (White Balance Error): 系統對中性灰的再現準確度。
 ### 4. 畸變 (Distortion) 與視野 (Field of View, FOV)用於分析鏡頭的幾何失真和覆蓋範圍。  
-測試方法/圖卡:  
+- 測試方法/圖卡:  
 點陣圖 (Dot Pattern) 或網格圖 (Grid Charts)。  
 關鍵指標:  
 徑向畸變 (Radial Distortion): 影像中直線彎曲的程度（例如桶形 $\text{Barrel}$ 或枕形 $\text{Pincushion}$ 畸變）。以百分比表示。  
@@ -46,7 +46,7 @@ ColorChecker 24 (經典色卡): 或 ColorChecker SG (半光澤圖卡)。
 視野 (FOV):  
 鏡頭能捕捉的場景範圍，通常以角度（$\text{degrees}$）或水平/垂直距離表示。  
 ### 5. 亮度與色度均勻性 (Lightfall/Vignetting and Color Uniformity)評估影像邊緣和角落與中心區域的亮度/顏色差異。  
-測試方法/圖卡:  
+- 測試方法/圖卡:  
 均勻光照下的平面圖卡 (Uniformly-lit flat field)。  
 關鍵指標:  
 漸暈/光衰減 (Vignetting/Lightfall):   
@@ -54,7 +54,7 @@ ColorChecker 24 (經典色卡): 或 ColorChecker SG (半光澤圖卡)。
 色度均勻性 (Color Uniformity):   
 影像不同區域之間顏色的穩定性，通常用色度坐標（如 $L^*a^*b^*$）的差異來衡量。  
 ### 6. 橫向色差 (Lateral Chromatic Aberration, LCA)由於不同波長的光線穿過鏡頭時折射角不同，導致影像邊緣出現彩色邊緣。  
-測試方法/圖卡:  
+- 測試方法/圖卡:  
 斜邊圖卡 (Slanted Edge Charts)。  
 關鍵指標:  
 LCA (以畫素或焦距的百分比表示):   
