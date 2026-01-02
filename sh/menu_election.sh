@@ -138,73 +138,170 @@ execute_isp_option() {
             ;;
         2)
             echo -e "${GREEN}執行 nr3d...${NC}"
-            echo -e "${YELLOW}請輸入選項 (0-4):${NC}"
-            # python ../IQ\ Tool/Math/gammaCheck.py
-            if [ $# -ne 1 ]; then
-	            echo "please input enable(on : 1/off : 0)"
-	            exit 1
-            fi
-            enable = "$1"
-            if [ "$enable" -eq 1 ]; then
-                result="on"
-            elif [ "$enable" -eq 0 ]; then
-                result="off"
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
             else
-                echo "只接受0 或 1 輸入"
-                exit 1  
-            fi       
-            echo nr3d_${result}_0 > /proc/driver/isp
-            cat /proc/driver/isp
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "nr3d_${result}_0" > /proc/driver/isp
+                echo "nr3d : ${result}"
             sleep 2
             ;;
         3)
             echo -e "${GREEN}執行 nr3dcir...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "nr3dcir_${result}_0" > /proc/driver/isp
+                echo "nr3dcir : ${result}"
+            fi
             sleep 2
             ;;
         4)
             echo -e "${GREEN}執行 nr3decdc...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "nr3decdc_${result}_0" > /proc/driver/isp
+                echo "nr3decdc : ${result}"
+            fi
             sleep 2
             ;;        
         5)
             echo -e "${GREEN}執行 nr3dnoddr...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "nr3dnoddr_${result}_0" > /proc/driver/isp
+                echo "nr3dnoddr : ${result}"
             sleep 2
             ;;    
         6)
             echo -e "${GREEN}執行 nr3ddep...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "nr3ddep_${result}_0" > /proc/driver/isp
+                echo "nr3ddep : ${result}"
             sleep 2
             ;;        
         7)
             echo -e "${GREEN}執行 trace...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "trace_${result}_0" > /proc/driver/isp
+                echo "trace : ${result}"
             sleep 2
             ;;   
         8)
             echo -e "${GREEN}執行 wdr...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "wdr_${result}_0" > /proc/driver/isp
+                echo "wdr : ${result}"
             sleep 2
             ;;
         9)
             echo -e "${GREEN}執行 wdrcir...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "wdrcir_${result}_0" > /proc/driver/isp
+                echo "wdrcir : ${result}"
             sleep 2
             ;;
         10)
             echo -e "${GREEN}執行 wdrciron...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "wdrciron_${result}_0" > /proc/driver/isp
+                echo "wdrciron : ${result}"
             sleep 2
             ;;
         11)
             echo -e "${GREEN}執行 wdrecdc...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "wdrecdc_${result}_0" > /proc/driver/isp
+                echo "wdrecdc : ${result}"
             sleep 2
             ;;
         12)
             echo -e "${GREEN}執行 addr...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo addr > /proc/driver/isp
+            cat /proc/driver/isp
             sleep 2
             ;;
         13)
@@ -227,52 +324,135 @@ execute_isp_option() {
             ;;
         16)
             echo -e "${GREEN}執行 colorbar...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (1~30)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[1-30]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 1-30。${NC}"
+            else
+                echo "colorbar_${num}" > /proc/driver/isp
+                echo "colorbar : ${num}"
             sleep 2
             ;;
         17)
             echo -e "${GREEN}執行 rst...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo rst > /proc/driver/isp
             sleep 2
             ;;
         18)
             echo -e "${GREEN}執行 autoreset...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "autoreset_${result}" > /proc/driver/isp
+                echo "autoreset : ${result}"
             sleep 2
             ;;
         19)
             echo -e "${GREEN}執行 aelog...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo "• 第0位表示ISP的幀計數"
+            echo "• 第1位表示當前幀曝光行數"
+            echo "• 第2位表示當前幀曝光模擬增益值"
+            echo "• 第3位元表示當前幀曝光數字增益值"
+            echo "• 第4位表示當前的帶消隱的高度值"
+            echo "• 第5位表示當前環境亮度值"
+            echo "• 第6位元表示當前目標亮度值"
+            echo "• 第7位元表示當前曝光調整狀態"
+            echo "• 第8位元表示當前曝光調整階段"
+            echo -e "${YELLOW}請輸入一個整數 (1-ff)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 (1-FF)。${NC}"
+            else
+                echo "aelog_0x${result}" > /proc/driver/isp
+                echo "autoreset : 0x${result}"
             sleep 2
             ;;   
         20)
             echo -e "${GREEN}執行 awblog...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                echo "awb_${num}_0" > /proc/driver/isp
+                echo "awb : ${num}"
             sleep 2
             ;; 
         21)
             echo -e "${GREEN}執行 ispoutnum...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (1~4)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[1-4]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 1-4。${NC}"
+            else
+                echo "ispoutnum_${num}_0" > /proc/driver/isp
+                echo "ispoutnum : ${num}"
             sleep 2
             ;; 
         22)
             echo -e "${GREEN}執行 forcekick...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "forcekick_${result}" > /proc/driver/isp
+                echo "forcekick : ${result}"
             sleep 2
             ;; 
         23)
             echo -e "${GREEN}執行 vgs...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "vgs_${result}_0" > /proc/driver/isp
+                echo "vgs : ${result}"
             sleep 2
             ;;   
         24)
             echo -e "${GREEN}執行 procmode...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                echo "procmode_${num}_0" > /proc/driver/isp
+                echo "procmode : ${num}"
             sleep 2
             ;;
         25)
             echo -e "${GREEN}執行 linearwdr...${NC}"
-            # python ../IQ\ Tool/SSIM/ssim_check.py
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                if [ "$num" -eq 1 ]; then
+                    result="on"
+                else
+                    result="off"
+                fi
+                echo "linearwdr_${result}" > /proc/driver/isp
+                echo "linearwdr : ${result}"
             sleep 2
             ;;                                                                     
         0)
@@ -307,6 +487,13 @@ execute_mipi_option() {
             ;;
         4)
             echo -e "${GREEN}procmode...${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            read -r num
+            if ! [[ "$num" =~ ^[0-1]$ ]]; then
+                echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
+            else
+                echo "procmode_${num}" > /proc/driver/mipi
+                echo "procmode : ${num}"
             sleep 2
             ;;
         0)
