@@ -72,8 +72,6 @@ class ImageAnalysisTool:
         self.DISPLAY_WIDTH = 640; self.DISPLAY_HEIGHT = 480
         self.slider_vars = {} # 用於儲存所有滑桿的變數，方便重設
         self.analysis_mode = "rgb" # 預設分析模式為 RGB
-        # 初始化 IP CAM 相關變數
-        self.ip_cap = None; self.ip_running = False; self.ip_disp_frame = None
         self.create_menu(); self.create_widgets(); self.set_controls_state('disabled')
 
     def create_menu(self):
@@ -168,40 +166,54 @@ class ImageAnalysisTool:
             self.uvc_frame.destroy()
 
     def open_ip_stream(self):
-        # 從右側輸入欄讀取 URL 並啟動 IP CAM 串流
+        # 當從上方選單點選「開啟IP串流」時，將焦點移到右側輸入欄讓使用者輸入
+        # 若輸入欄已有 URL，詢問使用者是否立即啟動
+        if not hasattr(self, 'ip_url_entry') or not hasattr(self, 'ip_url_var'):
+            messagebox.showwarning("警告", "右側 IP CAM 輸入欄尚未初始化。請確認控制面板已顯示。")
+            return
         try:
-            self.open_ip_stream_from_entry()
-        except Exception as e:
-            messagebox.showerror("錯誤", f"啟動 IP 串流失敗: {e}")
+            self.ip_url_entry.config(state='normal')
+        except Exception:
+            pass
+        self.ip_url_entry.focus_set()
+        try:
+            self.ip_url_entry.selection_range(0, tk.END)
+        except Exception:
+            pass
+
+        current = self.ip_url_var.get().strip()
+        if current:
+            # 若已輸入 URL，詢問是否立即使用該 URL 啟動串流
+            if messagebox.askyesno("啟動串流", f"欲使用現有 URL 啟動串流？\n{current}"):
+                try:
+                    self.start_ip_stream(current)
+                except Exception as e:
+                    messagebox.showerror("錯誤", f"啟動 IP 串流失敗: {e}")
+        else:
+            messagebox.showinfo("輸入 URL", "請在右側輸入 IP CAM 串流 URL，輸入後按「確定」以啟動。")
+            return
     
     def open_ip_stream_from_entry(self):
-        if not hasattr(self, 'ip_url_var'):
-            messagebox.showwarning("警告", "請先在右側輸入 IP CAM 串流 URL，然後按確定。")
+        url = getattr(self, 'ip_url_var', None)
+        if url is None or not url.get().strip():
+            messagebox.showwarning("警告", "請在右側輸入 IP CAM 串流 URL，然後按確定。")
             return
-        url = self.ip_url_var.get().strip()
-        if not url:
-            messagebox.showwarning("警告", "請輸入 IP CAM 串流 URL。")
-            return
-        self.start_ip_stream(url)
+        stream_url = url.get().strip()
+        self.start_ip_stream(stream_url)
 
     def start_ip_stream(self, stream_url):
         # 啟動 IP CAM 串流 (使用 OpenCV VideoCapture)
         try:
-            import cv2
-            import PIL.Image
-            import PIL.ImageTk
-        except ImportError as e:
-            messagebox.showerror("錯誤", f"需要安裝相關函式庫來使用 IP CAM 功能。\n缺少: {e}")
+            import cv2, PIL.Image, PIL.ImageTk
+        except ImportError:
+            messagebox.showerror("錯誤", "需要安裝 OpenCV-Python 函式庫來使用 IP CAM 功能。\n請使用 'pip install opencv-python' 安裝。")
             return
 
         # 如果已有顯示區，先移除
-        if hasattr(self, 'ip_disp_frame') and self.ip_disp_frame and self.ip_disp_frame.winfo_exists():
-            try:
-                self.ip_disp_frame.destroy()
-            except Exception:
-                pass
+        if hasattr(self, 'ip_disp_frame') and getattr(self, 'ip_disp_frame') and self.ip_disp_frame.winfo_exists():
+            self.ip_disp_frame.destroy()
 
-        self.ip_disp_frame = ttk.LabelFrame(self.right_frame, text=f"IP CAM 預覽 ({stream_url})")
+        self.ip_disp_frame = ttk.LabelFrame(self.right_frame, text="IP CAM 預覽")
         self.ip_disp_frame.pack(fill=tk.X, padx=10, pady=5)
         self.ip_canvas = tk.Canvas(self.ip_disp_frame, width=320, height=240, bg='black')
         self.ip_canvas.pack(side=tk.LEFT, padx=5, pady=5)
@@ -209,35 +221,23 @@ class ImageAnalysisTool:
         # 開啟 VideoCapture
         try:
             self.ip_cap = cv2.VideoCapture(stream_url)
-            # 設定超時與緩衝大小
-            self.ip_cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         except Exception as e:
             messagebox.showerror("錯誤", f"無法使用提供的 URL 開啟串流: {e}")
-            if hasattr(self, 'ip_disp_frame'):
-                try:
-                    self.ip_disp_frame.destroy()
-                except Exception:
-                    pass
+            self.ip_disp_frame.destroy()
             return
 
         if not self.ip_cap.isOpened():
             messagebox.showerror("錯誤", "無法開啟 IP CAM 串流。請確認 URL 正確且網路可連線。")
-            if hasattr(self, 'ip_disp_frame'):
-                try:
-                    self.ip_disp_frame.destroy()
-                except Exception:
-                    pass
+            self.ip_disp_frame.destroy()
             return
 
         self.ip_running = True
-        messagebox.showinfo("提示", "正在連接 IP CAM 串流...\n若無法顯示，請確認URL正確且網路通暢。")
-        
         def update_ip():
             if not getattr(self, 'ip_running', False):
                 return
-            try:
-                ret, frame = self.ip_cap.read()
-                if ret and frame is not None:
+            ret, frame = self.ip_cap.read()
+            if ret and frame is not None:
+                try:
                     img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     pil_img = PIL.Image.fromarray(img)
                     pil_img = pil_img.resize((320, 240))
@@ -246,11 +246,9 @@ class ImageAnalysisTool:
                     # 同步到處理影像以便顯示與分析
                     self.image_for_processing = pil_img.resize((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT))
                     self.update_display()
-            except Exception as e:
-                pass
-            if getattr(self, 'ip_running', False):
-                self.root.after(50, update_ip)
-        
+                except Exception:
+                    pass
+            self.root.after(50, update_ip)
         update_ip()
 
     def close_ip_stream(self):
@@ -262,12 +260,12 @@ class ImageAnalysisTool:
                     self.ip_cap.release()
                 except Exception:
                     pass
-        if hasattr(self, 'ip_disp_frame') and self.ip_disp_frame and self.ip_disp_frame.winfo_exists():
+        if hasattr(self, 'ip_disp_frame') and self.ip_disp_frame.winfo_exists():
             try:
                 self.ip_disp_frame.destroy()
             except Exception:
                 pass
-        # 不移除輸入欄位，使用者可以再次按確定啟動    
+        # 不移除輸入欄位，使用者可以再次按確定啟動
 
     def show_quality_analysis(self):
         self.analysis_mode = "rgb"
@@ -341,14 +339,14 @@ class ImageAnalysisTool:
         # --- IP CAM 輸入區 (右側) ---
         ip_input_frame = ttk.LabelFrame(scrollable_frame, text="IP CAM 串流設定")
         ip_input_frame.pack(fill=tk.X, padx=10, pady=5)
-        ttk.Label(ip_input_frame, text="Stream URL:").pack(side=tk.LEFT, padx=5, pady=5)
+        ttk.Label(ip_input_frame, text="Stream URL:").pack(side=tk.LEFT, padx=5)
         self.ip_url_var = tk.StringVar()
-        self.ip_url_entry = ttk.Entry(ip_input_frame, textvariable=self.ip_url_var, width=28)
-        self.ip_url_entry.pack(side=tk.LEFT, padx=5, pady=5)
+        self.ip_url_entry = ttk.Entry(ip_input_frame, textvariable=self.ip_url_var, width=36)
+        self.ip_url_entry.pack(side=tk.LEFT, padx=5)
         self.ip_confirm_button = ttk.Button(ip_input_frame, text="確定", command=self.open_ip_stream_from_entry)
-        self.ip_confirm_button.pack(side=tk.LEFT, padx=2, pady=5)
-        self.ip_close_button = ttk.Button(ip_input_frame, text="關閉", command=self.close_ip_stream)
-        self.ip_close_button.pack(side=tk.LEFT, padx=2, pady=5)
+        self.ip_confirm_button.pack(side=tk.LEFT, padx=5)
+        self.ip_close_button = ttk.Button(ip_input_frame, text="關閉串流", command=self.close_ip_stream)
+        self.ip_close_button.pack(side=tk.LEFT, padx=5)
 
         box_frame = ttk.LabelFrame(scrollable_frame, text="分析方框設定")
         box_frame.pack(fill=tk.X, padx=10, pady=5)

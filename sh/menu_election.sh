@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 多選項表單 - Linux 系統互動式選單
-# 使用方式：./menu_form.sh
+# FocalTrans ISP表單 -  互動式選單
+# 使用方式：./menu_isp.sh
 
 # 顏色定義（可選）
 RED='\033[0;31m'
@@ -24,8 +24,9 @@ main_menu() {
     echo "2) 讀取MIPI proc 工作訊息"
     echo "3) 打印ISP當前使用的模組開關與參數"
     echo "4) 打印MIPI proc文件"
-    echo "5) 測試(TBD)"
+    echo "5) mount SD"
     echo "6) 測試(TBD)"
+    echo "7) 測試(TBD)"
     echo "0) 退出程式"
     echo ""
     echo -e "${YELLOW}請輸入選項 (0-6):${NC}"
@@ -99,20 +100,31 @@ execute_option() {
             ;;
         3)
             echo -e "${GREEN}正在執行打印ISP當前使用的模組開關與參數...${NC}"
+            echo mod > /proc/driver/isp
+            cat /proc/driver/isp
             sleep 2
             ;;
         4)
             echo -e "${GREEN}正在執行打印MIPI proc文件...${NC}"
+            cat /proc/driver/mipi
             sleep 2
             ;;
         5)
-            echo -e "${GREEN}先預留...${NC}"
+            echo -e "${GREEN}Mount Sd Card to /data/...${NC}"
+            rm -r /data/sdcard/
+            mkdir /data/sdcard
+            mount -t vfat /dev/mmcblk1p1 /data/sdcard/
+            cd /data/sdcard
             sleep 2
             ;;
         6)
             echo -e "${GREEN}先預留...${NC}"
             sleep 2
             ;;
+        7)
+            echo -e "${GREEN}先預留...${NC}"
+            sleep 2
+            ;;    
         0)
             echo -e "${RED}退出程式${NC}"
             exit 0
@@ -138,7 +150,7 @@ execute_isp_option() {
             ;;
         2)
             echo -e "${GREEN}執行 nr3d...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -150,11 +162,12 @@ execute_isp_option() {
                 fi
                 echo "nr3d_${result}_0" > /proc/driver/isp
                 echo "nr3d : ${result}"
+            fi
             sleep 2
             ;;
         3)
             echo -e "${GREEN}執行 nr3dcir...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -171,7 +184,7 @@ execute_isp_option() {
             ;;
         4)
             echo -e "${GREEN}執行 nr3decdc...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -188,7 +201,7 @@ execute_isp_option() {
             ;;        
         5)
             echo -e "${GREEN}執行 nr3dnoddr...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -200,27 +213,29 @@ execute_isp_option() {
                 fi
                 echo "nr3dnoddr_${result}_0" > /proc/driver/isp
                 echo "nr3dnoddr : ${result}"
+            fi
             sleep 2
             ;;    
         6)
             echo -e "${GREEN}執行 nr3ddep...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (256 : 1 或 128 : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
             else
                 if [ "$num" -eq 1 ]; then
-                    result="on"
+                    result="256"
                 else
-                    result="off"
+                    result="128"
                 fi
                 echo "nr3ddep_${result}_0" > /proc/driver/isp
                 echo "nr3ddep : ${result}"
+            fi
             sleep 2
             ;;        
         7)
             echo -e "${GREEN}執行 trace...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -232,11 +247,12 @@ execute_isp_option() {
                 fi
                 echo "trace_${result}_0" > /proc/driver/isp
                 echo "trace : ${result}"
+            fi
             sleep 2
             ;;   
         8)
             echo -e "${GREEN}執行 wdr...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -248,11 +264,12 @@ execute_isp_option() {
                 fi
                 echo "wdr_${result}_0" > /proc/driver/isp
                 echo "wdr : ${result}"
+            fi
             sleep 2
             ;;
         9)
             echo -e "${GREEN}執行 wdrcir...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -264,11 +281,12 @@ execute_isp_option() {
                 fi
                 echo "wdrcir_${result}_0" > /proc/driver/isp
                 echo "wdrcir : ${result}"
+            fi
             sleep 2
             ;;
         10)
             echo -e "${GREEN}執行 wdrciron...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -280,11 +298,12 @@ execute_isp_option() {
                 fi
                 echo "wdrciron_${result}_0" > /proc/driver/isp
                 echo "wdrciron : ${result}"
+            fi
             sleep 2
             ;;
         11)
             echo -e "${GREEN}執行 wdrecdc...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -296,6 +315,7 @@ execute_isp_option() {
                 fi
                 echo "wdrecdc_${result}_0" > /proc/driver/isp
                 echo "wdrecdc : ${result}"
+            fi
             sleep 2
             ;;
         12)
@@ -331,6 +351,7 @@ execute_isp_option() {
             else
                 echo "colorbar_${num}" > /proc/driver/isp
                 echo "colorbar : ${num}"
+            fi
             sleep 2
             ;;
         17)
@@ -340,7 +361,7 @@ execute_isp_option() {
             ;;
         18)
             echo -e "${GREEN}執行 autoreset...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -352,6 +373,7 @@ execute_isp_option() {
                 fi
                 echo "autoreset_${result}" > /proc/driver/isp
                 echo "autoreset : ${result}"
+            fi
             sleep 2
             ;;
         19)
@@ -372,17 +394,19 @@ execute_isp_option() {
             else
                 echo "aelog_0x${result}" > /proc/driver/isp
                 echo "autoreset : 0x${result}"
+            fi
             sleep 2
             ;;   
         20)
             echo -e "${GREEN}執行 awblog...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
             else
                 echo "awb_${num}_0" > /proc/driver/isp
                 echo "awb : ${num}"
+            fi
             sleep 2
             ;; 
         21)
@@ -394,11 +418,12 @@ execute_isp_option() {
             else
                 echo "ispoutnum_${num}_0" > /proc/driver/isp
                 echo "ispoutnum : ${num}"
+            fi
             sleep 2
             ;; 
         22)
             echo -e "${GREEN}執行 forcekick...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -410,11 +435,12 @@ execute_isp_option() {
                 fi
                 echo "forcekick_${result}" > /proc/driver/isp
                 echo "forcekick : ${result}"
+            fi
             sleep 2
             ;; 
         23)
             echo -e "${GREEN}執行 vgs...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -426,22 +452,24 @@ execute_isp_option() {
                 fi
                 echo "vgs_${result}_0" > /proc/driver/isp
                 echo "vgs : ${result}"
+            fi
             sleep 2
             ;;   
         24)
             echo -e "${GREEN}執行 procmode...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
             else
                 echo "procmode_${num}_0" > /proc/driver/isp
                 echo "procmode : ${num}"
+            fi
             sleep 2
             ;;
         25)
             echo -e "${GREEN}執行 linearwdr...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
@@ -453,6 +481,7 @@ execute_isp_option() {
                 fi
                 echo "linearwdr_${result}" > /proc/driver/isp
                 echo "linearwdr : ${result}"
+            fi
             sleep 2
             ;;                                                                     
         0)
@@ -487,13 +516,14 @@ execute_mipi_option() {
             ;;
         4)
             echo -e "${GREEN}procmode...${NC}"
-            echo -e "${YELLOW}請輸入一個整數 (0 或 1)：${NC}"
+            echo -e "${YELLOW}請輸入一個整數 (on : 1 或 off : 0)：${NC}"
             read -r num
             if ! [[ "$num" =~ ^[0-1]$ ]]; then
                 echo -e "${RED}輸入不正確，請提供 0 或 1。${NC}"
             else
                 echo "procmode_${num}" > /proc/driver/mipi
                 echo "procmode : ${num}"
+            fi
             sleep 2
             ;;
         0)
