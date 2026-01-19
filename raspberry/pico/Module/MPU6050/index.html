@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>MPU6050 Web 3D 姿態儀</title>
+<style>
+body { margin:0; overflow:hidden; background:#1e1e1e; color:white; }
+#info {
+  position:absolute;
+  left:10px; top:10px;
+  font-family:monospace;
+  background:rgba(0,0,0,0.5);
+  padding:8px;
+  border-radius:6px;
+}
+</style>
+</head>
+<body>
+
+<div id="info">Connecting...</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.154.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// ===== 場景 =====
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1e1e1e);
+
+// ===== 相機 =====
+const camera = new THREE.PerspectiveCamera(
+  60, window.innerWidth/window.innerHeight, 0.1, 100
+);
+camera.position.set(3, 3, 4);
+
+// ===== Renderer =====
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// ===== Orbit 控制 =====
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.enablePan = true;
+controls.minDistance = 1.5;
+controls.maxDistance = 10;
+
+// ===== 光源 =====
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const light = new THREE.DirectionalLight(0xffffff, 0.8);
+light.position.set(5,5,5);
+scene.add(light);
+
+// ===== 3D 方塊 =====
+const cube = new THREE.Mesh(
+  new THREE.BoxGeometry(1,1,1),
+  new THREE.MeshStandardMaterial({
+    color:0x00ffff,
+    opacity:0.75,
+    transparent:true
+  })
+);
+scene.add(cube);
+
+// ===== 座標軸 =====
+scene.add(new THREE.AxesHelper(2));
+
+// ===== WebSocket =====
+const info = document.getElementById("info");
+const ws = new WebSocket("ws://YOUR_PICO_IP:8080");
+
+ws.onopen = () => info.textContent = "🟢 Connected";
+ws.onerror = () => info.textContent = "❌ WebSocket Error";
+
+ws.onmessage = (msg) => {
+  const d = JSON.parse(msg.data);
+
+  cube.rotation.x = THREE.MathUtils.degToRad(d.roll);
+  cube.rotation.y = THREE.MathUtils.degToRad(d.pitch);
+  cube.rotation.z = THREE.MathUtils.degToRad(d.yaw);
+
+  info.innerHTML = `
+AX: ${d.ax.toFixed(2)}<br>
+AY: ${d.ay.toFixed(2)}<br>
+AZ: ${d.az.toFixed(2)}<br>
+GX: ${d.gx.toFixed(2)}<br>
+GY: ${d.gy.toFixed(2)}<br>
+GZ: ${d.gz.toFixed(2)}<br>
+<hr>
+ROLL : ${d.roll.toFixed(1)}°<br>
+PITCH: ${d.pitch.toFixed(1)}°<br>
+YAW  : ${d.yaw.toFixed(1)}°
+`;
+};
+
+// ===== Resize =====
+window.addEventListener("resize", ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ===== Render Loop =====
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
+</script>
+
+</body>
+</html>
