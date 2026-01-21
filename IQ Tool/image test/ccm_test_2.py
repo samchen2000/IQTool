@@ -263,13 +263,18 @@ if colors_rgb:
     print()
 
 # --- 初始化 Matplotlib 介面 ---
-fig, ax = plt.subplots(figsize=(13, 9))
-plt.subplots_adjust(left=0.15, bottom=0.50)
+fig, (ax_original, ax_adjusted) = plt.subplots(1, 2, figsize=(16, 8))
+plt.subplots_adjust(left=0.10, right=0.95, bottom=0.50)
 
-# 顯示初始影像
-img_display = ax.imshow(img_rgb_original)
-ax.set_title("24 color - CCM Adjustent Tool", fontsize=14, fontweight='bold')
-ax.axis('off')
+# 左邊顯示原始影像
+ax_original.imshow(img_rgb_original)
+ax_original.set_title("Original Color Chart", fontsize=14, fontweight='bold')
+ax_original.axis('off')
+
+# 右邊顯示動態調整影像
+img_display = ax_adjusted.imshow(img_rgb_original)
+ax_adjusted.set_title("Adjusted Color Chart (CCM)", fontsize=14, fontweight='bold')
+ax_adjusted.axis('off')
 
 # --- 定義初始 CCM 矩陣 ---
 initial_ccm = np.array([
@@ -290,7 +295,7 @@ for i in range(3):
         idx = i * 3 + j
         
         # 滑桿軸
-        sax = plt.axes([0.15 + j * 0.27, 0.42 - i * 0.10, 0.20, 0.03], facecolor=axcolor)
+        sax = plt.axes([0.15 + j * 0.27, 0.32 - i * 0.10, 0.20, 0.03], facecolor=axcolor)
         if idx == 0 :    
             slider = Slider(sax, labels[idx], 0, 2.0, valinit=initial_ccm[i, j], valstep=0.01)
         elif idx == 1 :
@@ -315,13 +320,30 @@ for i in range(3):
         sliders.append(slider)
         
         # 數值顯示文本框軸
-        tax = plt.axes([0.36 + j * 0.27, 0.42 - i * 0.10, 0.03, 0.1])
+        tax = plt.axes([0.36 + j * 0.27, 0.32 - i * 0.10, 0.03, 0.1])
         tax.axis('off')
         text_box = plt.text(0.5, 0.5, f'{initial_ccm[i, j]:.2f}', 
                            ha='center', va='center', fontsize=11, fontweight='bold',
                            bbox=dict(boxstyle='round,pad=0.5', facecolor='white', edgecolor='black', linewidth=1.5),
                            transform=tax.transAxes)
         text_entries.append(text_box)
+
+# --- 建立 ΔE 統計資訊顯示框 ---
+# 平均 ΔE 顯示框
+avg_deltaE_ax = plt.axes([0.35, 0.45, 0.25, 0.04])
+avg_deltaE_ax.axis('off')
+avg_deltaE_box = plt.text(0.5, 0.5, 'Avg ΔE: 0.00', 
+                          ha='center', va='center', fontsize=12, fontweight='bold',
+                          bbox=dict(boxstyle='round,pad=0.5', facecolor='lightblue', edgecolor='blue', linewidth=2),
+                          transform=avg_deltaE_ax.transAxes)
+
+# 最大 ΔE 顯示框
+max_deltaE_ax = plt.axes([0.45, 0.45, 0.25, 0.04])
+max_deltaE_ax.axis('off')
+max_deltaE_box = plt.text(0.5, 0.5, 'Max ΔE: 0.00', 
+                          ha='center', va='center', fontsize=12, fontweight='bold',
+                          bbox=dict(boxstyle='round,pad=0.5', facecolor='lightcoral', edgecolor='red', linewidth=2),
+                          transform=max_deltaE_ax.transAxes)
 
 # --- 更新函數 ---
 def update(val):
@@ -348,7 +370,43 @@ def update(val):
         global_data['lab_values'] = []
         ccm_matrix = new_ccm.astype(np.float32)
         
-        for color_rgb in global_data['colors_rgb_original']:
+        # 參考色 Lab 值
+        colors_Lab = [
+           # 第 1 行
+            (38.02, 11.80, 13.67),      # 1. Deep Skin
+            (65.67, 13.67, 16.90),      # 2. Light Skin
+            (50.63, 0.37, -21.60),      # 3. Blue Sky
+            (43.00, -15.88, 20.45),     # 4. Foliage
+            (55.68, 12.76, -25.17),     # 5. Blue Flower
+            (70.99, -30.64, 1.54),      # 6. Bluish Green
+            
+            # 第 2 行
+            (61.14, 28.10, 56.13),      # 7. Orange
+            (41.12, 17.41, -41.88),     # 8. Purplish-blue
+            (51.33, 42.10, 14.89),      # 9. Moderate-red
+            (31.10, 24.35, -22.10),     # 10. Purple
+            (71.90, -28.10, 56.96),     # 11. Yellow-green
+            (71.04, 12.60, 64.92),      # 12. Orange-yellow
+            
+            # 第 3 行
+            (30.35, 26.43, -49.67),     # 13. Blue
+            (55.03, -40.14, 32.30),     # 14. Green
+            (41.35, 49.30, 24.66),      # 15. Red
+            (80.70, -3.66, 77.55),      # 16. Yellow
+            (51.14, 48.15, -15.28),     # 17. Magenta
+            (51.15, -19.73, -23.37),    # 18. Cyan
+            
+            # 第 4 行
+            (95.82, -0.18, 0.49),       # 19. White (.05*)
+            (80.60, -0.00, 0.00),       # 20. Neutral 8 (light gray, .23*)
+            (65.87, -0.00, 0.00),       # 21. Neutral 6.5 (gray, .44*)
+            (51.19, -0.20, 0.55),       # 22. Neutral 5 (mid gray, .70*)
+            (36.15, -0.00, 0.00),       # 23. Neutral 3.5 (dark gray, .1.05*)
+            (21.70, -0.00, 0.00),       # 24. Black(1.50*)
+        ]
+        
+        deltaE_values = []
+        for idx, color_rgb in enumerate(global_data['colors_rgb_original']):
             # 將 RGB 顏色轉換為 numpy 陣列並應用 CCM
             color_float = np.array(color_rgb, dtype=np.float32).reshape(1, 1, 3)
             corrected_color = cv2.transform(color_float, ccm_matrix)
@@ -357,6 +415,19 @@ def update(val):
             # 計算調整後顏色的 Lab 值
             lab = rgb_to_lab(tuple(corrected_color_clipped))
             global_data['lab_values'].append(lab)
+            
+            # 計算 ΔE
+            lab_org = colors_Lab[idx]
+            deltaE = math.sqrt(((lab_org[0] - lab[0])**2) + ((lab_org[1] - lab[1])**2) + ((lab_org[2] - lab[2])**2))
+            deltaE_values.append(deltaE)
+        
+        # 計算平均 ΔE 和最大 ΔE
+        avg_deltaE = np.mean(deltaE_values)
+        max_deltaE = np.max(deltaE_values)
+        
+        # 更新顯示框
+        avg_deltaE_box.set_text(f'Avg ΔE: {avg_deltaE:.2f}')
+        max_deltaE_box.set_text(f'Max ΔE: {max_deltaE:.2f}')
         
         # 更新 Lab 顯示視窗
         update_text_display()
