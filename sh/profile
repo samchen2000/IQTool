@@ -1,0 +1,29 @@
+# /etc/profile: system-wide .profile file for the Bourne shell (sh(1))
+# and Bourne compatible shells (bash(1), ksh(1), ash(1), ...).
+
+if [ "${PS1-}" ]; then
+  if [ "${BASH-}" ] && [ "$BASH" != "/bin/sh" ]; then
+    # The file bash.bashrc already sets the default PS1.
+    # PS1='\h:\w\$ '
+    if [ -f /etc/bash.bashrc ]; then
+      . /etc/bash.bashrc
+    fi
+  else
+    if [ "$(id -u)" -eq 0 ]; then
+      PS1='# '
+    else
+      PS1='$ '
+    fi
+  fi
+fi
+
+if [ -d /etc/profile.d ]; then
+  for i in /etc/profile.d/*.sh; do
+    if [ -r $i ]; then
+      . $i
+    fi
+  done
+  unset i
+fi
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files/WindowsApps/MicrosoftCorporationII.WindowsSubsystemForLinux_2.6.3.0_x64__8wekyb3d8bbwe:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0:/mnt/c/Windows/System32/OpenSSH:/mnt/c/Program Files/MATLAB/MATLAB Runtime/v85/runtime/win64:/mnt/c/Program Files/dotnet:/mnt/c/Program Files (x86)/Qualcomm/QUTSStatusApp:/mnt/c/Program Files (x86)/Qualcomm/Shared/QualcommProfiler/API/target-qnx:/mnt/c/PROGRA~2/Qualcomm/Shared/QualcommProfiler/API/host-windows/libs:/mnt/c/PROGRA~2/Qualcomm/Shared/QualcommProfiler/API/host-windows-64/libs:/mnt/c/Program Files/Microsoft SQL Server/Client SDK/ODBC/130/Tools/Binn:/mnt/c/Program Files (x86)/Microsoft SQL Server/140/Tools/Binn:/mnt/c/Program Files/Microsoft SQL Server/140/Tools/Binn:/mnt/c/Program Files/Microsoft SQL Server/140/DTS/Binn:/mnt/c/platform-tools:/mnt/c/Program Files/MATLAB/MATLAB Runtime/v901/runtime/win64:/mnt/c/Program Files/MATLAB/MATLAB Runtime/v90/runtime/win64:/mnt/c/Program Files/Git/cmd:/mnt/c/Qualcomm/Chromatix7/7.4.00.53/Simulator/Common/OpenCV:/mnt/c/Qualcomm/Chromatix7/7.4.00.52/Simulator/Common/OpenCV:/mnt/c/Qualcomm/Chromatix7/7.4.00.55/Simulator/Common/OpenCV:/mnt/c/MinGW/bin:/mnt/c/MinGW/include:/mnt/c/Program Files (x86)/Qualcomm/PCAT/bin:/mnt/c/Program Files/usbipd-win:/mnt/c/Qualcomm/Chromatix7/7.4.58.01/Simulator/Common/OpenCV:/mnt/c/Program Files (x86)/Qualcomm/QIKTool/1.0.167.1:/mnt/c/Program Files (x86)/Qualcomm/QPM-CLI/1.0.127.3:/mnt/c/Program Files (x86)/Qualcomm/QPM3/3.0.127.2:/mnt/c/Program Files (x86)/Qualcomm/QIKToolV3/3.0.49.2:/mnt/c/Program Files (x86)/Qualcomm/Qualcomm_Software_Center/1.22.1.0:/mnt/c/Users/88880674/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/88880674/AppData/Local/Programs/Microsoft VS Code/bin:/snap/bin:/opt/fullhan/arm-fhva12c-linux-uclibcgnueabihf-b5/bin"
+PATH="/opt/fullhan/arm-fhva12c-linux-uclibcgnueabihf-b5/bin:/home/samchen/.local/bin:/opt/fullhan/arm-fhva12c-linux-uclibcgnueabihf-b5/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files/WindowsApps/MicrosoftCorporationII.WindowsSubsystemForLinux_2.6.3.0_x64__8wekyb3d8bbwe:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0:/mnt/c/Windows/System32/OpenSSH:/mnt/c/Program Files/MATLAB/MATLAB Runtime/v85/runtime/win64:/mnt/c/Program Files/dotnet:/mnt/c/Program Files (x86)/Qualcomm/QUTSStatusApp:/mnt/c/Program Files (x86)/Qualcomm/Shared/QualcommProfiler/API/target-qnx:/mnt/c/PROGRA~2/Qualcomm/Shared/QualcommProfiler/API/host-windows/libs:/mnt/c/PROGRA~2/Qualcomm/Shared/QualcommProfiler/API/host-windows-64/libs:/mnt/c/Program Files/Microsoft SQL Server/Client SDK/ODBC/130/Tools/Binn:/mnt/c/Program Files (x86)/Microsoft SQL Server/140/Tools/Binn:/mnt/c/Program Files/Microsoft SQL Server/140/Tools/Binn:/mnt/c/Program Files/Microsoft SQL Server/140/DTS/Binn:/mnt/c/platform-tools:/mnt/c/Program Files/MATLAB/MATLAB Runtime/v901/runtime/win64:/mnt/c/Program Files/MATLAB/MATLAB Runtime/v90/runtime/win64:/mnt/c/Program Files/Git/cmd:/mnt/c/Qualcomm/Chromatix7/7.4.00.53/Simulator/Common/OpenCV:/mnt/c/Qualcomm/Chromatix7/7.4.00.52/Simulator/Common/OpenCV:/mnt/c/Qualcomm/Chromatix7/7.4.00.55/Simulator/Common/OpenCV:/mnt/c/MinGW/bin:/mnt/c/MinGW/include:/mnt/c/Program Files (x86)/Qualcomm/PCAT/bin:/mnt/c/Program Files/usbipd-win:/mnt/c/Qualcomm/Chromatix7/7.4.58.01/Simulator/Common/OpenCV:/mnt/c/Program Files (x86)/Qualcomm/QIKTool/1.0.167.1:/mnt/c/Program Files (x86)/Qualcomm/QPM-CLI/1.0.127.3:/mnt/c/Program Files (x86)/Qualcomm/QPM3/3.0.127.2:/mnt/c/Program Files (x86)/Qualcomm/QIKToolV3/3.0.49.2:/mnt/c/Program Files (x86)/Qualcomm/Qualcomm_Software_Center/1.22.1.0:/mnt/c/Users/88880674/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/88880674/AppData/Local/Programs/Microsoft VS Code/bin:/snap/bin:/opt/fullhan/arm-fhva12c-linux-uclibcgnueabihf-b5/bin:/opt/fullhan/opt/arc-fullhan-elf32/bin"

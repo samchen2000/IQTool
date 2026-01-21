@@ -38,6 +38,7 @@ def create_24_color_chart_with_labels():
     
     Returns:
         BGR 格式的色彩卡影像 (uint8) 與 RGB 顏色列表。
+        使用 sRGB 色卡資訊
     """
     colors_rgb = [
         # 第 1 行
@@ -89,7 +90,7 @@ def create_24_color_chart_with_labels():
         x2 = x1 + patch_size
         img_bgr[y1:y2, x1:x2] = [b, g, r]
     
-    return img_bgr, colors_rgb
+    return img_bgr , colors_rgb
 
 
 def get_color_names():
@@ -172,7 +173,7 @@ def create_lab_window():
     root.title("24 色色彩卡 Lab 值分析")
     root.geometry("750x850")
     
-    title_label = tk.Label(root, text="24 色色彩卡 - L*a*b 色彩空間數據", font=("Arial", 14, "bold"))
+    title_label = tk.Label(root, text="24 色色彩卡 - L*a*b 色彩空間數據", font=("Consolas", 14, "bold"))
     title_label.pack(pady=10)
     
     text_widget = scrolledtext.ScrolledText(root, width=85, height=45, font=("Courier", 10))
@@ -240,11 +241,31 @@ for i in range(3):
         
         # 滑桿軸
         sax = plt.axes([0.15 + j * 0.27, 0.42 - i * 0.10, 0.20, 0.03], facecolor=axcolor)
-        slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)
+        if idx == 0 :    
+            slider = Slider(sax, labels[idx], 0, 2.0, valinit=initial_ccm[i, j], valstep=0.01)
+        elif idx == 1 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)
+        elif idx == 2 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)
+        elif idx == 3 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)
+        elif idx == 4 :
+            slider = Slider(sax, labels[idx], 0, 2.0, valinit=initial_ccm[i, j], valstep=0.01)    
+        elif idx == 5 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)  
+        elif idx == 6 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)   
+        elif idx == 7 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)  
+        elif idx == 8 :
+            slider = Slider(sax, labels[idx], 0, 2.0, valinit=initial_ccm[i, j], valstep=0.01)                 
+        else :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)
+        print(idx)
         sliders.append(slider)
         
         # 數值顯示文本框軸
-        tax = plt.axes([0.36 + j * 0.27, 0.42 - i * 0.10, 0.06, 0.10])
+        tax = plt.axes([0.36 + j * 0.27, 0.42 - i * 0.10, 0.03, 0.1])
         tax.axis('off')
         text_box = plt.text(0.5, 0.5, f'{initial_ccm[i, j]:.2f}', 
                            ha='center', va='center', fontsize=11, fontweight='bold',
