@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import scrolledtext
 from skimage.color import rgb2lab
 import threading
+import math
 
 # ==========================================
 # Sam 影像處理小幫手 - 互動式 CCM 調整工具 (升級版)
@@ -38,6 +39,7 @@ def create_24_color_chart_with_labels():
     
     Returns:
         BGR 格式的色彩卡影像 (uint8) 與 RGB 顏色列表。
+        使用 sRGB 色卡資訊
     """
     colors_rgb = [
         # 第 1 行
@@ -71,8 +73,8 @@ def create_24_color_chart_with_labels():
         (122, 122, 121),    # 22. Neutral 5 (mid gray, .70*)
         (85, 85, 85),       # 23. Neutral 3.5 (dark gray, .1.05*)
         (52, 52, 52),       # 24. Black(1.50*)
-    ]
-    
+    ]      
+        
     patch_size = 100
     rows, cols = 4, 6
     height = rows * patch_size
@@ -89,8 +91,7 @@ def create_24_color_chart_with_labels():
         x2 = x1 + patch_size
         img_bgr[y1:y2, x1:x2] = [b, g, r]
     
-    return img_bgr, colors_rgb
-
+    return img_bgr , colors_rgb
 
 def get_color_names():
     """獲取24色的名稱"""
@@ -124,6 +125,7 @@ global_data = {
     'color_names': [],
     'text_widget': None,
     'colors_rgb_original': [],  # 保存原始 RGB 顏色
+    'current_ccm': np.eye(3),   # 保存當前 CCM 矩陣
     'fig': None,
     'ax': None,
 }
@@ -146,6 +148,40 @@ def update_lab_display(colors_rgb):
 
 def update_text_display():
     """更新文本框中的Lab值顯示"""
+    colors_Lab = [
+       # 第 1 行
+        (38.02, 11.80, 13.67),      # 1. Deep Skin
+        (65.67, 13.67, 16.90),      # 2. Light Skin
+        (50.63, 0.37, -21.60),      # 3. Blue Sky
+        (43.00, -15.88, 20.45),     # 4. Foliage
+        (55.68, 12.76, -25.17),     # 5. Blue Flower
+        (70.99, -30.64, 1.54),      # 6. Bluish Green
+        
+        # 第 2 行
+        (61.14, 28.10, 56.13),      # 7. Orange
+        (41.12, 17.41, -41.88),     # 8. Purplish-blue
+        (51.33, 42.10, 14.89),      # 9. Moderate-red
+        (31.10, 24.35, -22.10),     # 10. Purple
+        (71.90, -28.10, 56.96),     # 11. Yellow-green
+        (71.04, 12.60, 64.92),      # 12. Orange-yellow
+        
+        # 第 3 行
+        (30.35, 26.43, -49.67),     # 13. Blue
+        (55.03, -40.14, 32.30),     # 14. Green
+        (41.35, 49.30, 24.66),      # 15. Red
+        (80.70, -3.66, 77.55),      # 16. Yellow
+        (51.14, 48.15, -15.28),     # 17. Magenta
+        (51.15, -19.73, -23.37),    # 18. Cyan
+        
+        # 第 4 行
+        (95.82, -0.18, 0.49),       # 19. White (.05*)
+        (80.60, -0.00, 0.00),       # 20. Neutral 8 (light gray, .23*)
+        (65.87, -0.00, 0.00),       # 21. Neutral 6.5 (gray, .44*)
+        (51.19, -0.20, 0.55),       # 22. Neutral 5 (mid gray, .70*)
+        (36.15, -0.00, 0.00),       # 23. Neutral 3.5 (dark gray, .1.05*)
+        (21.70, -0.00, 0.00),       # 24. Black(1.50*)
+    ]
+
     if global_data['text_widget'] is None:
         return
     
@@ -154,14 +190,64 @@ def update_text_display():
     text_widget.delete('1.0', tk.END)
     
     content = "=" * 75 + "\n"
-    content += "24 color - Lab value\n"
+    content += "24 color - Lab value with CCM Adjusted RGB\n"
     content += "=" * 75 + "\n\n"
     
-    for i, (lab, name) in enumerate(zip(global_data['lab_values'], global_data['color_names'])):
-        content += f"【色塊 #{i+1:2d}】{name:15s}\n"
-        content += f"    L*: {lab[0]:7.2f}    a*: {lab[1]:7.2f}    b*: {lab[2]:7.2f}\n"
-        content += "-" * 75 + "\n"
+    # 獲取當前 CCM 矩陣
+    current_ccm = global_data['current_ccm'].astype(np.float32)
     
+    for i, (lab, name) in enumerate(zip(global_data['lab_values'], global_data['color_names'])):
+        lab_org = colors_Lab[i]
+        deltaE = math.sqrt(((lab_org[0] - lab[0])**2) + ((lab_org[1] - lab[1])**2) + ((lab_org[2] - lab[2])**2))
+        """
+        ------------------------------------------
+        ΔE	人眼感覺
+        < 1	幾乎看不出差異
+        1 – 2	非常細微
+        2 – 3	仔細看才看得出
+        3 – 5	明顯差異
+        > 5	明顯色偏
+        """
+        deltaC_real = math.sqrt((lab[1]**2) + (lab[2]**2))
+        deltaC_org = math.sqrt((lab_org[1])**2 + (lab_org[2])**2)
+        deltaC = deltaC_real - deltaC_org
+        """
+        ΔC :
+        正值 → 顏色變「更鮮豔」
+        負值 → 顏色變「更灰、更淡」
+        """
+        
+        # 動態讀取原始 RGB 值並計算飽和度
+        if i < len(global_data['colors_rgb_original']):
+            rgb_org = global_data['colors_rgb_original'][i]
+            # 計算 CCM 調整後的 RGB 值
+            color_float = np.array(rgb_org, dtype=np.float32).reshape(1, 1, 3)
+            corrected_color = cv2.transform(color_float, current_ccm)
+            corrected_color_clipped = np.clip(corrected_color[0, 0], 0, 255).astype(np.uint8)
+            rgb_adjusted = tuple(corrected_color_clipped)
+            # 正規化 RGB 值到 0-1 範圍
+            r_norm = rgb_adjusted[0] / 255.0
+            g_norm = rgb_adjusted[1] / 255.0
+            b_norm = rgb_adjusted[2] / 255.0
+            
+            # 計算飽和度 (HSV 色彩空間中的 S 值)
+            rgb_max = max(r_norm, g_norm, b_norm)
+            rgb_min = min(r_norm, g_norm, b_norm)
+            rgb_delta = rgb_max - rgb_min
+            
+            if rgb_max == 0:
+                sat_value = 0
+            else:
+                sat_value = (rgb_delta / rgb_max) * 255
+        else:
+            sat_value = 0
+            rgb_adjusted = (0, 0, 0)
+            
+        content += f"【色塊 #{i+1:2d}】{name:15s}\n"
+       # content += f"  原始RGB: ({global_data['colors_rgb_original'][i][0]:3d}, {global_data['colors_rgb_original'][i][1]:3d}, {global_data['colors_rgb_original'][i][2]:3d})  "
+       # content += f"調整RGB: ({rgb_adjusted[0]:3d}, {rgb_adjusted[1]:3d}, {rgb_adjusted[2]:3d})\n"
+        content += f"  L*: {lab[0]:4.2f}  a*: {lab[1]:4.2f}  b*: {lab[2]:4.2f}  ΔE: {deltaE:4.2f}  ΔC: {deltaC:4.2f}  Sat: {sat_value:4.2f}\n  "
+        content += "-" * 75 + "\n"
     text_widget.insert('1.0', content)
     text_widget.config(state=tk.DISABLED)
 
@@ -172,7 +258,7 @@ def create_lab_window():
     root.title("24 色色彩卡 Lab 值分析")
     root.geometry("750x850")
     
-    title_label = tk.Label(root, text="24 色色彩卡 - L*a*b 色彩空間數據", font=("Arial", 14, "bold"))
+    title_label = tk.Label(root, text="24 色色彩卡 - L*a*b 色彩空間數據", font=("Consolas", 14, "bold"))
     title_label.pack(pady=10)
     
     text_widget = scrolledtext.ScrolledText(root, width=85, height=45, font=("Courier", 10))
@@ -212,13 +298,18 @@ if colors_rgb:
     print()
 
 # --- 初始化 Matplotlib 介面 ---
-fig, ax = plt.subplots(figsize=(13, 9))
-plt.subplots_adjust(left=0.15, bottom=0.50)
+fig, (ax_original, ax_adjusted) = plt.subplots(1, 2, figsize=(16, 8))
+plt.subplots_adjust(left=0.10, right=0.95, bottom=0.50)
 
-# 顯示初始影像
-img_display = ax.imshow(img_rgb_original)
-ax.set_title("24 color - CCM Adjustent Tool", fontsize=14, fontweight='bold')
-ax.axis('off')
+# 左邊顯示原始影像
+ax_original.imshow(img_rgb_original)
+ax_original.set_title("Original Color Chart", fontsize=14, fontweight='bold')
+ax_original.axis('off')
+
+# 右邊顯示動態調整影像
+img_display = ax_adjusted.imshow(img_rgb_original)
+ax_adjusted.set_title("Adjusted Color Chart (CCM)", fontsize=14, fontweight='bold')
+ax_adjusted.axis('off')
 
 # --- 定義初始 CCM 矩陣 ---
 initial_ccm = np.array([
@@ -239,18 +330,80 @@ for i in range(3):
         idx = i * 3 + j
         
         # 滑桿軸
-        sax = plt.axes([0.15 + j * 0.27, 0.42 - i * 0.10, 0.20, 0.03], facecolor=axcolor)
-        slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)
+        sax = plt.axes([0.15 + j * 0.27, 0.32 - i * 0.10, 0.20, 0.03], facecolor=axcolor)
+        if idx == 0 :    
+            slider = Slider(sax, labels[idx], 0, 2.0, valinit=initial_ccm[i, j], valstep=0.01)
+        elif idx == 1 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)
+        elif idx == 2 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)
+        elif idx == 3 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)
+        elif idx == 4 :
+            slider = Slider(sax, labels[idx], 0, 2.0, valinit=initial_ccm[i, j], valstep=0.01)    
+        elif idx == 5 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)  
+        elif idx == 6 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)   
+        elif idx == 7 :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)  
+        elif idx == 8 :
+            slider = Slider(sax, labels[idx], 0, 2.0, valinit=initial_ccm[i, j], valstep=0.01)                 
+        else :
+            slider = Slider(sax, labels[idx], -1.0, 1.0, valinit=initial_ccm[i, j], valstep=0.01)
+        print(idx)
         sliders.append(slider)
         
         # 數值顯示文本框軸
-        tax = plt.axes([0.36 + j * 0.27, 0.42 - i * 0.10, 0.06, 0.10])
+        tax = plt.axes([0.36 + j * 0.27, 0.32 - i * 0.10, 0.03, 0.1])
         tax.axis('off')
         text_box = plt.text(0.5, 0.5, f'{initial_ccm[i, j]:.2f}', 
                            ha='center', va='center', fontsize=11, fontweight='bold',
                            bbox=dict(boxstyle='round,pad=0.5', facecolor='white', edgecolor='black', linewidth=1.5),
                            transform=tax.transAxes)
         text_entries.append(text_box)
+
+# --- 建立 ΔE 統計資訊顯示框 ---
+# 平均 ΔE 顯示框
+avg_deltaE_ax = plt.axes([0.15, 0.42, 0.25, 0.04])
+avg_deltaE_ax.axis('off')
+avg_deltaE_box = plt.text(0.5, 0.5, 'Avg ΔE: 0.00', 
+                          ha='center', va='center', fontsize=12, fontweight='bold',
+                          bbox=dict(boxstyle='round,pad=0.5', facecolor='lightblue', edgecolor='blue', linewidth=2),
+                          transform=avg_deltaE_ax.transAxes)
+
+# 最大 ΔE 顯示框
+max_deltaE_ax = plt.axes([0.30, 0.42, 0.25, 0.04])
+max_deltaE_ax.axis('off')
+max_deltaE_box = plt.text(0.5, 0.5, 'Max ΔE: 0.00', 
+                          ha='center', va='center', fontsize=12, fontweight='bold',
+                          bbox=dict(boxstyle='round,pad=0.5', facecolor='lightcoral', edgecolor='red', linewidth=2),
+                          transform=max_deltaE_ax.transAxes)
+
+# --- 建立 ΔC 統計資訊顯示框 ---
+# 平均 ΔC 顯示框
+avg_deltaC_ax = plt.axes([0.45, 0.42, 0.25, 0.04])
+avg_deltaC_ax.axis('off')
+avg_deltaC_box = plt.text(0.5, 0.5, 'Avg ΔC: 0.00', 
+                          ha='center', va='center', fontsize=12, fontweight='bold',
+                          bbox=dict(boxstyle='round,pad=0.5', facecolor='lightblue', edgecolor='blue', linewidth=2),
+                          transform=avg_deltaC_ax.transAxes)
+
+# 最大 ΔC 顯示框
+max_deltaC_ax = plt.axes([0.60, 0.42, 0.25, 0.04])
+max_deltaC_ax.axis('off')
+max_deltaC_box = plt.text(0.5, 0.5, 'Max ΔC: 0.00', 
+                          ha='center', va='center', fontsize=12, fontweight='bold',
+                          bbox=dict(boxstyle='round,pad=0.5', facecolor='lightcoral', edgecolor='red', linewidth=2),
+                          transform=max_deltaC_ax.transAxes)
+
+# 平均HSV
+avg_saturation_ax = plt.axes([0.75, 0.42, 0.25, 0.04])
+avg_saturation_ax.axis('off')
+avg_saturation_box = plt.text(0.5, 0.5, 'Avg SAT: 0.00', 
+                          ha='center', va='center', fontsize=12, fontweight='bold',
+                          bbox=dict(boxstyle='round,pad=0.5', facecolor='lightcoral', edgecolor='red', linewidth=2),
+                          transform=avg_saturation_ax.transAxes)
 
 # --- 更新函數 ---
 def update(val):
@@ -262,6 +415,9 @@ def update(val):
         [sliders[3].val, sliders[4].val, sliders[5].val],
         [sliders[6].val, sliders[7].val, sliders[8].val]
     ])
+    
+    # 保存當前 CCM 矩陣到全局變量
+    global_data['current_ccm'] = new_ccm.copy()
     
     # 更新數值顯示
     for idx, text_box in enumerate(text_entries):
@@ -277,7 +433,43 @@ def update(val):
         global_data['lab_values'] = []
         ccm_matrix = new_ccm.astype(np.float32)
         
-        for color_rgb in global_data['colors_rgb_original']:
+        # 參考色 Lab 值
+        colors_Lab = [
+           # 第 1 行
+            (38.02, 11.80, 13.67),      # 1. Deep Skin
+            (65.67, 13.67, 16.90),      # 2. Light Skin
+            (50.63, 0.37, -21.60),      # 3. Blue Sky
+            (43.00, -15.88, 20.45),     # 4. Foliage
+            (55.68, 12.76, -25.17),     # 5. Blue Flower
+            (70.99, -30.64, 1.54),      # 6. Bluish Green
+            
+            # 第 2 行
+            (61.14, 28.10, 56.13),      # 7. Orange
+            (41.12, 17.41, -41.88),     # 8. Purplish-blue
+            (51.33, 42.10, 14.89),      # 9. Moderate-red
+            (31.10, 24.35, -22.10),     # 10. Purple
+            (71.90, -28.10, 56.96),     # 11. Yellow-green
+            (71.04, 12.60, 64.92),      # 12. Orange-yellow
+            
+            # 第 3 行
+            (30.35, 26.43, -49.67),     # 13. Blue
+            (55.03, -40.14, 32.30),     # 14. Green
+            (41.35, 49.30, 24.66),      # 15. Red
+            (80.70, -3.66, 77.55),      # 16. Yellow
+            (51.14, 48.15, -15.28),     # 17. Magenta
+            (51.15, -19.73, -23.37),    # 18. Cyan
+            
+            # 第 4 行
+            (95.82, -0.18, 0.49),       # 19. White (.05*)
+            (80.60, -0.00, 0.00),       # 20. Neutral 8 (light gray, .23*)
+            (65.87, -0.00, 0.00),       # 21. Neutral 6.5 (gray, .44*)
+            (51.19, -0.20, 0.55),       # 22. Neutral 5 (mid gray, .70*)
+            (36.15, -0.00, 0.00),       # 23. Neutral 3.5 (dark gray, .1.05*)
+            (21.70, -0.00, 0.00),       # 24. Black(1.50*)
+        ]
+        
+        deltaE_values = []
+        for idx, color_rgb in enumerate(global_data['colors_rgb_original']):
             # 將 RGB 顏色轉換為 numpy 陣列並應用 CCM
             color_float = np.array(color_rgb, dtype=np.float32).reshape(1, 1, 3)
             corrected_color = cv2.transform(color_float, ccm_matrix)
@@ -286,6 +478,70 @@ def update(val):
             # 計算調整後顏色的 Lab 值
             lab = rgb_to_lab(tuple(corrected_color_clipped))
             global_data['lab_values'].append(lab)
+            
+            # 計算 ΔE
+            lab_org = colors_Lab[idx]
+            deltaE = math.sqrt(((lab_org[0] - lab[0])**2) + ((lab_org[1] - lab[1])**2) + ((lab_org[2] - lab[2])**2))
+            deltaE_values.append(deltaE)
+            
+        deltaC_values = []
+        for idx, color_rgb in enumerate(global_data['colors_rgb_original']):
+            # 將 RGB 顏色轉換為 numpy 陣列並應用 CCM
+            color_float = np.array(color_rgb, dtype=np.float32).reshape(1, 1, 3)
+            corrected_color = cv2.transform(color_float, ccm_matrix)
+            corrected_color_clipped = np.clip(corrected_color[0, 0], 0, 255).astype(np.uint8)
+            
+            # 計算調整後顏色的 Lab 值
+            lab = rgb_to_lab(tuple(corrected_color_clipped))
+            global_data['lab_values'].append(lab)
+            
+            # 計算 ΔE
+            lab_org = colors_Lab[idx]
+            deltaC = math.sqrt(((lab_org[1] - lab[1])**2) + ((lab_org[2] - lab[2])**2))
+            deltaC_values.append(deltaC)        
+        
+        # 計算平均 ΔE 和最大 ΔE
+        avg_deltaE = np.mean(deltaE_values)
+        max_deltaE = np.max(deltaE_values)
+        
+        # 計算平均 ΔC 和最大 ΔC
+        avg_deltaC = np.mean(deltaC_values)
+        max_deltaC = np.max(deltaC_values)
+        
+        # 計算 24 色卡調整後的飽和度平均值
+        saturation_values = []
+        for idx, color_rgb in enumerate(global_data['colors_rgb_original']):
+            # 將 RGB 顏色轉換為 numpy 陣列並應用 CCM
+            color_float = np.array(color_rgb, dtype=np.float32).reshape(1, 1, 3)
+            corrected_color = cv2.transform(color_float, ccm_matrix)
+            corrected_color_clipped = np.clip(corrected_color[0, 0], 0, 255).astype(np.uint8)
+            
+            # 正規化調整後的 RGB 值到 0-1 範圍
+            r_norm = corrected_color_clipped[0] / 255.0
+            g_norm = corrected_color_clipped[1] / 255.0
+            b_norm = corrected_color_clipped[2] / 255.0
+            
+            # 計算飽和度 (HSV 色彩空間中的 S 值)
+            rgb_max = max(r_norm, g_norm, b_norm)
+            rgb_min = min(r_norm, g_norm, b_norm)
+            rgb_delta = rgb_max - rgb_min
+            
+            if rgb_max == 0:
+                sat_value = 0
+            else:
+                sat_value = (rgb_delta / rgb_max) * 255
+            
+            saturation_values.append(sat_value)
+        
+        # 計算平均飽和度
+        avg_saturation = np.mean(saturation_values)
+        
+        # 更新顯示框
+        avg_deltaE_box.set_text(f'Avg ΔE: {avg_deltaE:.2f}')
+        max_deltaE_box.set_text(f'Max ΔE: {max_deltaE:.2f}')
+        avg_deltaC_box.set_text(f'Avg ΔC: {avg_deltaC:.2f}')
+        max_deltaC_box.set_text(f'Max ΔC: {max_deltaC:.2f}')
+        avg_saturation_box.set_text(f'Avg SAT: {avg_saturation:.2f}')
         
         # 更新 Lab 顯示視窗
         update_text_display()
