@@ -76,7 +76,7 @@ def create_24_color_chart_with_labels():
         (52, 52, 52),       # 24. Black(1.50*)
     ]      
         
-    patch_size = 100
+    patch_size = 150
     rows, cols = 4, 6
     height = rows * patch_size
     width = cols * patch_size
@@ -631,7 +631,7 @@ for i in range(3):
     
     # Rr+Rg+Rb , Gr+Gg+Gb , Br+Bg+Bb 加總 (每行一個，所以在 j 循環外)
     #CCM 每一行（Row）的總和應該等於 1 
-    add_ccm_ax = plt.axes([0.87, 0.12 + (i/10), 0.25, 0.04])
+    add_ccm_ax = plt.axes([0.87, 0.32 - (i/10), 0.25, 0.04])
     add_ccm_ax.axis('off')
     add_ccm_box = plt.text(0.3, 0.3, ' Add : 1.00', 
                       ha='center', va='center', fontsize=10, fontweight='bold',
@@ -641,7 +641,7 @@ for i in range(3):
 
 # --- 建立 ΔE 統計資訊顯示框 ---
 # 平均 ΔE 顯示框
-avg_deltaE_ax = plt.axes([0.15, 0.50, 0.25, 0.04])
+avg_deltaE_ax = plt.axes([0.15, 0.40, 0.25, 0.04])
 avg_deltaE_ax.axis('off')
 avg_deltaE_box = plt.text(0.5, 0.5, 'Avg ΔE: 0.00', 
                           ha='center', va='center', fontsize=12, fontweight='bold',
@@ -649,7 +649,7 @@ avg_deltaE_box = plt.text(0.5, 0.5, 'Avg ΔE: 0.00',
                           transform=avg_deltaE_ax.transAxes)
 
 # 最大 ΔE 顯示框
-max_deltaE_ax = plt.axes([0.30, 0.50, 0.25, 0.04])
+max_deltaE_ax = plt.axes([0.30, 0.40, 0.25, 0.04])
 max_deltaE_ax.axis('off')
 max_deltaE_box = plt.text(0.5, 0.5, 'Max ΔE: 0.00', 
                           ha='center', va='center', fontsize=12, fontweight='bold',
@@ -658,7 +658,7 @@ max_deltaE_box = plt.text(0.5, 0.5, 'Max ΔE: 0.00',
 
 # --- 建立 ΔC 統計資訊顯示框 ---
 # 平均 ΔC 顯示框
-avg_deltaC_ax = plt.axes([0.45, 0.50, 0.25, 0.04])
+avg_deltaC_ax = plt.axes([0.45, 0.40, 0.25, 0.04])
 avg_deltaC_ax.axis('off')
 avg_deltaC_box = plt.text(0.5, 0.5, 'Avg ΔC: 0.00', 
                           ha='center', va='center', fontsize=12, fontweight='bold',
@@ -666,7 +666,7 @@ avg_deltaC_box = plt.text(0.5, 0.5, 'Avg ΔC: 0.00',
                           transform=avg_deltaC_ax.transAxes)
 
 # 最大 ΔC 顯示框
-max_deltaC_ax = plt.axes([0.60, 0.50, 0.25, 0.04])
+max_deltaC_ax = plt.axes([0.60, 0.40, 0.25, 0.04])
 max_deltaC_ax.axis('off')
 max_deltaC_box = plt.text(0.5, 0.5, 'Max ΔC: 0.00', 
                           ha='center', va='center', fontsize=12, fontweight='bold',
@@ -674,7 +674,7 @@ max_deltaC_box = plt.text(0.5, 0.5, 'Max ΔC: 0.00',
                           transform=max_deltaC_ax.transAxes)
 
 # 平均HSV
-avg_saturation_ax = plt.axes([0.75, 0.50, 0.25, 0.04])
+avg_saturation_ax = plt.axes([0.75, 0.40, 0.25, 0.04])
 avg_saturation_ax.axis('off')
 avg_saturation_box = plt.text(0.5, 0.5, 'Avg SAT: 0.00', 
                           ha='center', va='center', fontsize=12, fontweight='bold',
