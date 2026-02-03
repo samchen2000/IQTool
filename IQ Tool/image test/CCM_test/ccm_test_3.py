@@ -434,7 +434,7 @@ def load_user_image_to_plot(ax_adjusted):
     
     # 自動檢測24色塊
     try:
-        box_positions = detect_color_blocks_kmeans(global_data['user_image'], 1)
+        box_positions = detect_color_blocks_kmeans(global_data['user_image'], 24)
         
         # 創建方框
         for pos in box_positions:
@@ -447,7 +447,7 @@ def load_user_image_to_plot(ax_adjusted):
     except Exception as e:
         print(f"自動檢測失敗: {e}")
         # 使用預設網格
-        create_initial_boxes(ax_adjusted, 1)
+        create_initial_boxes(ax_adjusted, 24)
     
     return True
 
@@ -522,30 +522,6 @@ def on_open_image():
         load_user_image_to_plot(ax_adjusted)
         fig.canvas.draw_idle()
 
-def on_close_image():
-    """關閉圖片菜單回調 - 回復24色色卡顯示"""
-    # 清除用戶圖片及相關方框
-    global_data['user_image'] = None
-    global_data['user_image_display'] = None
-    global_data['is_manual_mode'] = False
-    
-    # 移除所有方框
-    for rect in global_data['color_boxes']:
-        rect.remove()
-    global_data['color_boxes'] = []
-    global_data['box_positions'] = []
-    global_data['selected_box_idx'] = None
-    
-    # 更新右側顯示回復為原始24色色卡
-    if global_data['img_display'] is not None:
-        global_data['img_display'].remove()
-    
-    global_data['img_display'] = ax_adjusted.imshow(img_rgb_original)
-    ax_adjusted.set_title("Adjusted Color Chart (CCM)", fontsize=14, fontweight='bold')
-    
-    # 重繪介面
-    fig.canvas.draw_idle()
-
 # 獲取 Tkinter 根窗口（來自 Matplotlib 後端）
 manager = fig.canvas.manager
 if manager and hasattr(manager, 'window'):
@@ -559,7 +535,6 @@ if manager and hasattr(manager, 'window'):
     file_menu = tk.Menu(menubar, tearoff=0)
     menubar.add_cascade(label="File", menu=file_menu)
     file_menu.add_command(label="Open Image (JPEG/PNG/BMP)", command=on_open_image)
-    file_menu.add_command(label="Close Image File", command=on_close_image)
     file_menu.add_separator()
     file_menu.add_command(label="Exit", command=root_window.quit)
 
@@ -762,35 +737,9 @@ def on_mouse_press(event):
         return
     if event.inaxes != global_data['ax_adjusted']:
         return
-    if event.xdata is None or event.ydata is None:
-        return
     
-    # 記錄起始位置
     box_drag_data['start_x'] = event.xdata
     box_drag_data['start_y'] = event.ydata
-    
-    # 檢查是否點擊了某個方框
-    for i, rect in enumerate(global_data['color_boxes']):
-        # 獲取方框的位置和大小
-        x, y = rect.get_xy()
-        w = rect.get_width()
-        h = rect.get_height()
-        
-        # 判斷點擊是否在方框內
-        if x <= event.xdata <= x + w and y <= event.ydata <= y + h:
-            # 如果選中的方框改變，更新顏色
-            if global_data['selected_box_idx'] != i:
-                # 清除之前的選擇
-                if global_data['selected_box_idx'] is not None and global_data['selected_box_idx'] < len(global_data['color_boxes']):
-                    global_data['color_boxes'][global_data['selected_box_idx']].set_edgecolor('cyan')
-                    global_data['color_boxes'][global_data['selected_box_idx']].set_linewidth(2)
-                
-                # 設置新的選擇
-                global_data['selected_box_idx'] = i
-                rect.set_edgecolor('red')
-                rect.set_linewidth(3)
-                fig.canvas.draw_idle()
-            return
 
 def on_mouse_release(event):
     """滑鼠釋放事件"""
@@ -952,7 +901,7 @@ fig.canvas.mpl_connect('pick_event', on_box_pick_event)  # 方框選擇
 fig.canvas.mpl_connect('button_press_event', on_mouse_press)  # 滑鼠按下
 fig.canvas.mpl_connect('button_release_event', on_mouse_release)  # 滑鼠釋放
 fig.canvas.mpl_connect('motion_notify_event', on_mouse_motion)  # 滑鼠移動
-# key_press_event 將在後面與色塊輸入框事件整合
+fig.canvas.mpl_connect('key_press_event', on_key_event)
 
 def update(val):
     """滑桿更新回調"""
@@ -1126,167 +1075,6 @@ def reset(event):
             idx += 1
 
 button.on_clicked(reset)
-
-# --- 色塊編號輸入框 ---
-# 標籤
-color_block_label_ax = plt.axes([0.15, 0.025, 0.15, 0.04])
-color_block_label_ax.axis('off')
-color_block_label_text = plt.text(0.5, 0.5, 'Color Block (1-24):', 
-                                  ha='center', va='center', fontsize=11, fontweight='bold',
-                                  transform=color_block_label_ax.transAxes)
-
-# 輸入框
-color_block_input_ax = plt.axes([0.30, 0.025, 0.08, 0.04])
-color_block_input_ax.axis('off')
-global_data['color_block_input_text'] = plt.text(0.5, 0.5, '1', 
-                                                  ha='center', va='center', fontsize=11,
-                                                  bbox=dict(boxstyle='round,pad=0.4', facecolor='lightyellow', 
-                                                            edgecolor='gray', linewidth=1),
-                                                  transform=color_block_input_ax.transAxes,
-                                                  picker=True)
-
-# 確認按鍵
-def on_select_color_block(event):
-    """根據輸入的編號選擇色塊"""
-    try:
-        block_num = int(global_data['color_block_input_text'].get_text())
-        if not (1 <= block_num <= 24):
-            messagebox.showwarning("警告", "請輸入1-24之間的數字")
-            return
-        
-        # 清除之前的選擇
-        for rect in global_data['color_boxes']:
-            rect.set_edgecolor('cyan')
-            rect.set_linewidth(2)
-        
-        # 如果在手動模式下，選擇對應的方框
-        if global_data['is_manual_mode'] and len(global_data['color_boxes']) > 0:
-            idx = min(block_num - 1, len(global_data['color_boxes']) - 1)
-            if idx < len(global_data['color_boxes']):
-                global_data['color_boxes'][idx].set_edgecolor('red')
-                global_data['color_boxes'][idx].set_linewidth(3)
-                global_data['selected_box_idx'] = idx
-        
-        fig.canvas.draw_idle()
-    except ValueError:
-        messagebox.showerror("錯誤", "請輸入有效的數字")
-
-# 色塊選擇按鍵
-select_block_ax = plt.axes([0.39, 0.025, 0.08, 0.04])
-select_block_btn = Button(select_block_ax, 'Select', color=axcolor, hovercolor='0.975')
-select_block_btn.on_clicked(on_select_color_block)
-
-# 記錄色塊輸入框的編輯狀態
-color_block_editing = {'active': False, 'text': '1'}
-
-def on_color_block_pick(event):
-    """點擊色塊輸入框時觸發"""
-    try:
-        if hasattr(event, 'artist') and event.artist == global_data['color_block_input_text']:
-            color_block_editing['active'] = True
-            color_block_editing['text'] = global_data['color_block_input_text'].get_text()
-            global_data['color_block_input_text'].set_bbox(dict(boxstyle='round,pad=0.4', facecolor='lightcyan', 
-                                                                 edgecolor='blue', linewidth=2))
-            fig.canvas.draw_idle()
-    except Exception as e:
-        pass  # 靜默處理任何異常
-
-def on_color_block_key(event):
-    """色塊輸入框的鍵盤事件"""
-    if not color_block_editing['active']:
-        return
-    
-    text = color_block_editing['text']
-    
-    if event.key == 'backspace':
-        color_block_editing['text'] = text[:-1] if text else ''
-    elif event.key == 'escape':
-        color_block_editing['active'] = False
-        color_block_editing['text'] = '1'
-        global_data['color_block_input_text'].set_text('1')
-        global_data['color_block_input_text'].set_bbox(dict(boxstyle='round,pad=0.4', facecolor='lightyellow', 
-                                                             edgecolor='gray', linewidth=1))
-        fig.canvas.draw_idle()
-        return
-    elif event.key == 'enter':
-        color_block_editing['active'] = False
-        try:
-            block_num = int(color_block_editing['text'])
-            if 1 <= block_num <= 24:
-                on_select_color_block(None)
-            else:
-                messagebox.showwarning("警告", "請輸入1-24之間的數字")
-                color_block_editing['text'] = '1'
-        except ValueError:
-            messagebox.showerror("錯誤", "請輸入有效的數字")
-            color_block_editing['text'] = '1'
-        
-        global_data['color_block_input_text'].set_text(color_block_editing['text'])
-        global_data['color_block_input_text'].set_bbox(dict(boxstyle='round,pad=0.4', facecolor='lightyellow', 
-                                                             edgecolor='gray', linewidth=1))
-        fig.canvas.draw_idle()
-        return
-    elif event.character:
-        # 檢查是否是數字字符
-        if event.character.isdigit():
-            current_text = color_block_editing['text']
-            # 如果當前只有初始值 '1'，替換為新數字；否則追加（最多2位）
-            if current_text == '1' and len(current_text) == 1:
-                # 如果輸入的是 0，設置為 10；否則直接替換
-                if event.character == '0':
-                    color_block_editing['text'] = '1'  # 防止輸入 0，保持為 1
-                else:
-                    color_block_editing['text'] = event.character
-            elif len(current_text) < 2:  # 最多2位數字
-                # 組合成新數字
-                new_num_str = current_text + event.character
-                new_num = int(new_num_str)
-                # 如果超過 24，只保留第一位加新輸入的較小值
-                if new_num > 24:
-                    color_block_editing['text'] = event.character
-                else:
-                    color_block_editing['text'] = new_num_str
-    
-    global_data['color_block_input_text'].set_text(color_block_editing['text'])
-    fig.canvas.draw_idle()
-
-# 建立統一的 pick_event 處理器，整合色塊輸入框
-def unified_pick_event(event):
-    """統一的 pick_event 處理器"""
-    # 先處理色塊輸入框選擇
-    on_color_block_pick(event)
-    # 再處理其他 pick 事件（原有的輸入框）
-    on_pick_event(event)
-
-# 將新的 key_press 事件處理與舊的結合
-old_on_key_event = on_key_event
-
-def combined_on_key_event(event):
-    """組合的鍵盤事件處理"""
-    on_color_block_key(event)
-    old_on_key_event(event)
-
-# 斷開原有的單一 pick_event 連接並重新連接統一版本
-# 移除舊的 pick_event 連接（這些會被新的統一版本取代）
-# 注意：Matplotlib 的 mpl_connect 會自動添加，所以我們在這裡直接使用統一版本
-
-# 重新設定 pick_event 連接（第一個 pick_event 會被統一版本取代）
-# 我們保留第二個 on_box_pick_event 連接，但也將其整合到統一版本
-
-def comprehensive_pick_event(event):
-    """綜合的 pick_event 處理器 - 處理所有 pick 相關事件"""
-    # 1. 先處理色塊輸入框
-    on_color_block_pick(event)
-    # 2. 處理 CCM 矩陣輸入框
-    on_pick_event(event)
-    # 3. 處理方框選擇
-    on_box_pick_event(event)
-
-# 移除現有的 pick_event 連接（透過重新建立連接列表）
-# 由於無法直接移除 Matplotlib 的特定連接，我們使用 comprehensive_pick_event 作為主要處理器
-
-# 連接整合的鍵盤事件
-fig.canvas.mpl_connect('key_press_event', combined_on_key_event)
 
 # --- 顯示 Matplotlib 圖表 ---
 plt.show()

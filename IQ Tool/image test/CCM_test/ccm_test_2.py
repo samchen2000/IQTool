@@ -4,11 +4,10 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 from matplotlib.patches import Rectangle
 import tkinter as tk
-from tkinter import scrolledtext, filedialog, messagebox
+from tkinter import scrolledtext
 from skimage.color import rgb2lab
 import threading
 import math
-import os
 
 # ==========================================
 # Sam 影像處理小幫手 - 互動式 CCM 調整工具 (升級版)
@@ -76,7 +75,7 @@ def create_24_color_chart_with_labels():
         (52, 52, 52),       # 24. Black(1.50*)
     ]      
         
-    patch_size = 150
+    patch_size = 100
     rows, cols = 4, 6
     height = rows * patch_size
     width = cols * patch_size
@@ -129,13 +128,6 @@ global_data = {
     'current_ccm': np.eye(3),   # 保存當前 CCM 矩陣
     'fig': None,
     'ax': None,
-    'user_image': None,  # 用戶打開的圖片
-    'user_image_display': None,  # Matplotlib 中用於顯示用戶圖片的 AxesImage
-    'color_boxes': [],  # 24 個色塊方框
-    'is_manual_mode': False,  # 是否處於手動模式（打開圖片）
-    'box_positions': [],  # 存儲 24 個方框的位置和大小
-    'selected_box_idx': None,  # 當前選中的方框索引
-    'dragging_mode': None,  # 拖拽模式：'move'、'resize' 或 None
 }
 
 
@@ -260,198 +252,6 @@ def update_text_display():
     text_widget.config(state=tk.DISABLED)
 
 
-def detect_color_blocks_kmeans(image_rgb, num_clusters=24):
-    """
-    使用 K-means 聚類自動檢測24色塊的位置。
-    
-    Args:
-        image_rgb: RGB 格式影像
-        num_clusters: 顏色群集數（應為24）
-        
-    Returns:
-        24個色塊的位置信息列表 (x, y, width, height)
-    """
-    h, w = image_rgb.shape[:2]
-    
-    # 將影像重塑為像素列表
-    pixels = image_rgb.reshape(-1, 3)
-    
-    # 使用 K-means 聚類
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-    _, labels, centers = cv2.kmeans(
-        pixels.astype(np.float32), 
-        num_clusters, 
-        None, 
-        criteria, 
-        10, 
-        cv2.KMEANS_RANDOM_CENTERS
-    )
-    
-    # 每個像素分配到最近的簇
-    labels = labels.flatten()
-    
-    # 計算每個簇的邊界框
-    box_positions = []
-    for cluster_id in range(num_clusters):
-        mask = (labels == cluster_id)
-        if not mask.any():
-            continue
-            
-        y_coords, x_coords = np.where(mask.reshape(h, w))
-        if len(y_coords) == 0:
-            continue
-            
-        x_min, x_max = x_coords.min(), x_coords.max()
-        y_min, y_max = y_coords.min(), y_coords.max()
-        
-        box_width = max(x_max - x_min, 10)
-        box_height = max(y_max - y_min, 10)
-        
-        box_positions.append({
-            'x': x_min,
-            'y': y_min,
-            'width': box_width,
-            'height': box_height,
-            'cluster_id': cluster_id
-        })
-    
-    # 按位置排序（從左到右，從上到下）
-    if box_positions:
-        box_positions.sort(key=lambda b: (b['y'], b['x']))
-    
-    return box_positions[:24]  # 只取前24個
-
-
-def create_initial_boxes(ax_adjusted, num_boxes=24):
-    """
-    在影像上創建初始24個方框。
-    
-    Args:
-        ax_adjusted: Matplotlib axis
-        num_boxes: 方框數量
-    """
-    global_data['color_boxes'] = []
-    global_data['box_positions'] = []
-    
-    # 獲取軸的寬高
-    ax_width = ax_adjusted.get_xlim()[1] - ax_adjusted.get_xlim()[0]
-    ax_height = ax_adjusted.get_ylim()[1] - ax_adjusted.get_ylim()[0]
-    
-    # 4x6 網格
-    cols = 6
-    rows = 4
-    box_width = ax_width / cols * 0.95
-    box_height = ax_height / rows * 0.95
-    
-    for i in range(num_boxes):
-        row = i // cols
-        col = i % cols
-        
-        x = col * (ax_width / cols) + (ax_width / cols - box_width) / 2
-        y = row * (ax_height / rows) + (ax_height / rows - box_height) / 2
-        
-        rect = Rectangle((x, y), box_width, box_height, 
-                         linewidth=2, edgecolor='cyan', 
-                         facecolor='none', picker=True)
-        ax_adjusted.add_patch(rect)
-        global_data['color_boxes'].append(rect)
-        
-        global_data['box_positions'].append({
-            'x': x,
-            'y': y,
-            'width': box_width,
-            'height': box_height,
-            'index': i
-        })
-
-
-def open_image_file():
-    """打開圖片文件對話框並加載圖片"""
-    root = tk.Tk()
-    root.withdraw()  # 隱藏 Tkinter 主窗口
-    
-    file_path = filedialog.askopenfilename(
-        title="選擇圖片",
-        filetypes=[
-            ("圖片文件", "*.jpg *.jpeg *.png *.bmp"),
-            ("JPEG", "*.jpg *.jpeg"),
-            ("PNG", "*.png"),
-            ("BMP", "*.bmp"),
-            ("所有文件", "*.*")
-        ]
-    )
-    
-    root.destroy()
-    
-    if not file_path:
-        return False
-    
-    # 讀取圖片
-    img_bgr = cv2.imread(file_path)
-    if img_bgr is None:
-        messagebox.showerror("錯誤", "無法讀取圖片文件")
-        return False
-    
-    # 轉換為 RGB
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    
-    # 取得右側顯示區域的大小（假設為 400x400）
-    target_height = 400
-    target_width = 400
-    
-    # 調整圖片尺寸以適應顯示區域，保持縱橫比
-    h, w = img_rgb.shape[:2]
-    scale = min(target_width / w, target_height / h)
-    new_w = int(w * scale)
-    new_h = int(h * scale)
-    
-    img_rgb_resized = cv2.resize(img_rgb, (new_w, new_h), interpolation=cv2.INTER_AREA)
-    
-    global_data['user_image'] = img_rgb_resized
-    global_data['is_manual_mode'] = True
-    
-    return True
-
-
-def load_user_image_to_plot(ax_adjusted):
-    """將用戶圖片加載到 Matplotlib 中"""
-    if global_data['user_image'] is None:
-        return False
-    
-    # 清除現有的方框
-    for rect in global_data['color_boxes']:
-        rect.remove()
-    global_data['color_boxes'] = []
-    global_data['box_positions'] = []
-    
-    # 清除現有的圖片顯示
-    if global_data['user_image_display'] is not None:
-        global_data['user_image_display'].remove()
-    
-    # 顯示新圖片
-    global_data['user_image_display'] = ax_adjusted.imshow(global_data['user_image'])
-    ax_adjusted.set_title("User Image - Click to Select Box", fontsize=12, fontweight='bold')
-    
-    # 自動檢測24色塊
-    try:
-        box_positions = detect_color_blocks_kmeans(global_data['user_image'], 1)
-        
-        # 創建方框
-        for pos in box_positions:
-            rect = Rectangle((pos['x'], pos['y']), pos['width'], pos['height'],
-                            linewidth=2, edgecolor='cyan', 
-                            facecolor='none', picker=True)
-            ax_adjusted.add_patch(rect)
-            global_data['color_boxes'].append(rect)
-            global_data['box_positions'].append(pos)
-    except Exception as e:
-        print(f"自動檢測失敗: {e}")
-        # 使用預設網格
-        create_initial_boxes(ax_adjusted, 1)
-    
-    return True
-
-
 def create_lab_window():
     """建立顯示Lab值的窗口"""
     root = tk.Tk()
@@ -511,64 +311,13 @@ img_display = ax_adjusted.imshow(img_rgb_original)
 ax_adjusted.set_title("Adjusted Color Chart (CCM)", fontsize=14, fontweight='bold')
 ax_adjusted.axis('off')
 
-# 存儲 img_display 的引用
-global_data['img_display'] = img_display
-global_data['ax_adjusted'] = ax_adjusted
-
-# --- 建立菜單栏 ---
-def on_open_image():
-    """打開圖片菜單回調"""
-    if open_image_file():
-        load_user_image_to_plot(ax_adjusted)
-        fig.canvas.draw_idle()
-
-def on_close_image():
-    """關閉圖片菜單回調 - 回復24色色卡顯示"""
-    # 清除用戶圖片及相關方框
-    global_data['user_image'] = None
-    global_data['user_image_display'] = None
-    global_data['is_manual_mode'] = False
-    
-    # 移除所有方框
-    for rect in global_data['color_boxes']:
-        rect.remove()
-    global_data['color_boxes'] = []
-    global_data['box_positions'] = []
-    global_data['selected_box_idx'] = None
-    
-    # 更新右側顯示回復為原始24色色卡
-    if global_data['img_display'] is not None:
-        global_data['img_display'].remove()
-    
-    global_data['img_display'] = ax_adjusted.imshow(img_rgb_original)
-    ax_adjusted.set_title("Adjusted Color Chart (CCM)", fontsize=14, fontweight='bold')
-    
-    # 重繪介面
-    fig.canvas.draw_idle()
-
-# 獲取 Tkinter 根窗口（來自 Matplotlib 後端）
-manager = fig.canvas.manager
-if manager and hasattr(manager, 'window'):
-    root_window = manager.window
-    
-    # 建立菜單欄
-    menubar = tk.Menu(root_window)
-    root_window.config(menu=menubar)
-    
-    # File 菜單
-    file_menu = tk.Menu(menubar, tearoff=0)
-    menubar.add_cascade(label="File", menu=file_menu)
-    file_menu.add_command(label="Open Image (JPEG/PNG/BMP)", command=on_open_image)
-    file_menu.add_command(label="Close Image File", command=on_close_image)
-    file_menu.add_separator()
-    file_menu.add_command(label="Exit", command=root_window.quit)
-
 # --- 定義初始 CCM 矩陣 ---
 initial_ccm = np.array([
     [1.0, 0.0, 0.0],
     [0.0, 1.0, 0.0],
     [0.0, 0.0, 1.0]
 ])
+
 # --- 建立滑桿和數值顯示 ---
 axcolor = 'lightgoldenrodyellow'
 sliders = []
@@ -576,7 +325,6 @@ text_entries = []
 buttons_inc = []
 buttons_dec = []
 input_boxes = []
-add_ccm_boxes = []
 
 labels = ['R_r', 'R_g', 'R_b', 'G_r', 'G_g', 'G_b', 'B_r', 'B_g', 'B_b']
 
@@ -595,24 +343,6 @@ slider_ranges = [
 
 # 全局變量以追蹤輸入框焦點
 focused_input_idx = None
-
-def update_ccm_sum_display():
-    """更新 CCM 每行的加總顯示"""
-    # 計算每行的加總
-    # Row 0: R_r + R_g + R_b (indices 0, 1, 2)
-    # Row 1: G_r + G_g + G_b (indices 3, 4, 5)
-    # Row 2: B_r + B_g + B_b (indices 6, 7, 8)
-    
-    row_sums = [
-        sliders[0].val + sliders[1].val + sliders[2].val,  # R row
-        sliders[3].val + sliders[4].val + sliders[5].val,  # G row
-        sliders[6].val + sliders[7].val + sliders[8].val,  # B row
-    ]
-    
-    # 更新三個 add_ccm_boxes
-    for row_idx, total in enumerate(row_sums):
-        if row_idx < len(add_ccm_boxes):
-            add_ccm_boxes[row_idx].set_text(f'Add: {total:.2f}')
 
 for i in range(3):
     for j in range(3):
@@ -653,20 +383,10 @@ for i in range(3):
         inc_ax = plt.axes([0.31 + j * 0.27, 0.27 - i * 0.10, 0.04, 0.03])
         btn_inc = Button(inc_ax, '+', color='lightgreen', hovercolor='green')
         buttons_inc.append(btn_inc)
-    
-    # Rr+Rg+Rb , Gr+Gg+Gb , Br+Bg+Bb 加總 (每行一個，所以在 j 循環外)
-    #CCM 每一行（Row）的總和應該等於 1 
-    add_ccm_ax = plt.axes([0.87, 0.32 - (i/10), 0.25, 0.04])
-    add_ccm_ax.axis('off')
-    add_ccm_box = plt.text(0.3, 0.3, ' Add : 1.00', 
-                      ha='center', va='center', fontsize=10, fontweight='bold',
-                      bbox=dict(boxstyle='round,pad=0.5', facecolor='lightcoral', edgecolor='blue', linewidth=2),
-                      transform=add_ccm_ax.transAxes)
-    add_ccm_boxes.append(add_ccm_box)
 
 # --- 建立 ΔE 統計資訊顯示框 ---
 # 平均 ΔE 顯示框
-avg_deltaE_ax = plt.axes([0.15, 0.40, 0.25, 0.04])
+avg_deltaE_ax = plt.axes([0.15, 0.50, 0.25, 0.04])
 avg_deltaE_ax.axis('off')
 avg_deltaE_box = plt.text(0.5, 0.5, 'Avg ΔE: 0.00', 
                           ha='center', va='center', fontsize=12, fontweight='bold',
@@ -674,7 +394,7 @@ avg_deltaE_box = plt.text(0.5, 0.5, 'Avg ΔE: 0.00',
                           transform=avg_deltaE_ax.transAxes)
 
 # 最大 ΔE 顯示框
-max_deltaE_ax = plt.axes([0.30, 0.40, 0.25, 0.04])
+max_deltaE_ax = plt.axes([0.30, 0.50, 0.25, 0.04])
 max_deltaE_ax.axis('off')
 max_deltaE_box = plt.text(0.5, 0.5, 'Max ΔE: 0.00', 
                           ha='center', va='center', fontsize=12, fontweight='bold',
@@ -683,7 +403,7 @@ max_deltaE_box = plt.text(0.5, 0.5, 'Max ΔE: 0.00',
 
 # --- 建立 ΔC 統計資訊顯示框 ---
 # 平均 ΔC 顯示框
-avg_deltaC_ax = plt.axes([0.45, 0.40, 0.25, 0.04])
+avg_deltaC_ax = plt.axes([0.45, 0.50, 0.25, 0.04])
 avg_deltaC_ax.axis('off')
 avg_deltaC_box = plt.text(0.5, 0.5, 'Avg ΔC: 0.00', 
                           ha='center', va='center', fontsize=12, fontweight='bold',
@@ -691,7 +411,7 @@ avg_deltaC_box = plt.text(0.5, 0.5, 'Avg ΔC: 0.00',
                           transform=avg_deltaC_ax.transAxes)
 
 # 最大 ΔC 顯示框
-max_deltaC_ax = plt.axes([0.60, 0.40, 0.25, 0.04])
+max_deltaC_ax = plt.axes([0.60, 0.50, 0.25, 0.04])
 max_deltaC_ax.axis('off')
 max_deltaC_box = plt.text(0.5, 0.5, 'Max ΔC: 0.00', 
                           ha='center', va='center', fontsize=12, fontweight='bold',
@@ -699,7 +419,7 @@ max_deltaC_box = plt.text(0.5, 0.5, 'Max ΔC: 0.00',
                           transform=max_deltaC_ax.transAxes)
 
 # 平均HSV
-avg_saturation_ax = plt.axes([0.75, 0.40, 0.25, 0.04])
+avg_saturation_ax = plt.axes([0.75, 0.50, 0.25, 0.04])
 avg_saturation_ax.axis('off')
 avg_saturation_box = plt.text(0.5, 0.5, 'Avg SAT: 0.00', 
                           ha='center', va='center', fontsize=12, fontweight='bold',
@@ -716,7 +436,6 @@ def create_button_callbacks():
             current_val = sliders[idx].val
             new_val = min(current_val + 0.05, slider_range[1])
             sliders[idx].set_val(new_val)
-            update_ccm_sum_display()
         return on_inc_clicked
     
     def make_decrement_callback(idx):
@@ -725,7 +444,6 @@ def create_button_callbacks():
             current_val = sliders[idx].val
             new_val = max(current_val - 0.05, slider_range[0])
             sliders[idx].set_val(new_val)
-            update_ccm_sum_display()
         return on_dec_clicked
     
     for idx, btn_inc in enumerate(buttons_inc):
@@ -736,150 +454,6 @@ def create_button_callbacks():
 
 # 建立按鍵回調
 create_button_callbacks()
-
-# 初始化 CCM 行加總顯示
-update_ccm_sum_display()
-
-# --- 用戶圖片方框交互功能 ---
-box_drag_data = {'start_x': None, 'start_y': None, 'box_idx': None}
-
-def on_box_pick_event(event):
-    """點擊方框時選中"""
-    if not global_data['is_manual_mode']:
-        return
-    
-    for i, rect in enumerate(global_data['color_boxes']):
-        if event.artist == rect:
-            global_data['selected_box_idx'] = i
-            rect.set_edgecolor('red')
-            rect.set_linewidth(3)
-            fig.canvas.draw_idle()
-            return
-
-def on_mouse_press(event):
-    """滑鼠按下事件"""
-    if not global_data['is_manual_mode']:
-        return
-    if event.inaxes != global_data['ax_adjusted']:
-        return
-    if event.xdata is None or event.ydata is None:
-        return
-    
-    # 記錄起始位置
-    box_drag_data['start_x'] = event.xdata
-    box_drag_data['start_y'] = event.ydata
-    
-    # 檢查是否點擊了某個方框
-    for i, rect in enumerate(global_data['color_boxes']):
-        # 獲取方框的位置和大小
-        x, y = rect.get_xy()
-        w = rect.get_width()
-        h = rect.get_height()
-        
-        # 判斷點擊是否在方框內
-        if x <= event.xdata <= x + w and y <= event.ydata <= y + h:
-            # 如果選中的方框改變，更新顏色
-            if global_data['selected_box_idx'] != i:
-                # 清除之前的選擇
-                if global_data['selected_box_idx'] is not None and global_data['selected_box_idx'] < len(global_data['color_boxes']):
-                    global_data['color_boxes'][global_data['selected_box_idx']].set_edgecolor('cyan')
-                    global_data['color_boxes'][global_data['selected_box_idx']].set_linewidth(2)
-                
-                # 設置新的選擇
-                global_data['selected_box_idx'] = i
-                rect.set_edgecolor('red')
-                rect.set_linewidth(3)
-                fig.canvas.draw_idle()
-            return
-
-def on_mouse_release(event):
-    """滑鼠釋放事件"""
-    if not global_data['is_manual_mode']:
-        return
-    if event.inaxes != global_data['ax_adjusted']:
-        return
-    
-    box_drag_data['start_x'] = None
-    box_drag_data['start_y'] = None
-
-def on_mouse_motion(event):
-    """滑鼠移動事件 - 用於調整方框"""
-    if not global_data['is_manual_mode']:
-        return
-    if event.inaxes != global_data['ax_adjusted']:
-        return
-    if box_drag_data['start_x'] is None:
-        return
-    
-    if global_data['selected_box_idx'] is not None:
-        box_idx = global_data['selected_box_idx']
-        dx = event.xdata - box_drag_data['start_x']
-        dy = event.ydata - box_drag_data['start_y']
-        
-        # 使用 Shift 鍵調整大小，否則移動
-        if event.key == 'shift':
-            # 調整大小
-            global_data['color_boxes'][box_idx].set_width(
-                max(10, global_data['color_boxes'][box_idx].get_width() + dx)
-            )
-            global_data['color_boxes'][box_idx].set_height(
-                max(10, global_data['color_boxes'][box_idx].get_height() + dy)
-            )
-            global_data['box_positions'][box_idx]['width'] = global_data['color_boxes'][box_idx].get_width()
-            global_data['box_positions'][box_idx]['height'] = global_data['color_boxes'][box_idx].get_height()
-        else:
-            # 移動
-            global_data['color_boxes'][box_idx].set_xy(
-                (global_data['color_boxes'][box_idx].get_xy()[0] + dx,
-                 global_data['color_boxes'][box_idx].get_xy()[1] + dy)
-            )
-            global_data['box_positions'][box_idx]['x'] = global_data['color_boxes'][box_idx].get_xy()[0]
-            global_data['box_positions'][box_idx]['y'] = global_data['color_boxes'][box_idx].get_xy()[1]
-        
-        box_drag_data['start_x'] = event.xdata
-        box_drag_data['start_y'] = event.ydata
-        
-        # 更新 Lab 顯示
-        update_manual_mode_display()
-        fig.canvas.draw_idle()
-
-def update_manual_mode_display():
-    """在手動模式下更新 Lab 顯示"""
-    if not global_data['is_manual_mode'] or global_data['user_image'] is None:
-        return
-    
-    # 清除舊的 Lab 值
-    global_data['lab_values'] = []
-    global_data['colors_rgb_original'] = []
-    
-    # 從每個方框中提取平均顏色
-    user_image = global_data['user_image']
-    
-    for box_pos in global_data['box_positions']:
-        x = int(box_pos['x'])
-        y = int(box_pos['y'])
-        w = int(box_pos['width'])
-        h = int(box_pos['height'])
-        
-        # 確保邊界在影像範圍內
-        x = max(0, min(x, user_image.shape[1] - 1))
-        y = max(0, min(y, user_image.shape[0] - 1))
-        w = min(w, user_image.shape[1] - x)
-        h = min(h, user_image.shape[0] - y)
-        
-        # 提取方框內的像素
-        roi = user_image[y:y+h, x:x+w]
-        if roi.size == 0:
-            avg_color = (128, 128, 128)
-        else:
-            avg_color = tuple(roi.reshape(-1, 3).mean(axis=0).astype(int))
-        
-        global_data['colors_rgb_original'].append(avg_color)
-        lab = rgb_to_lab(avg_color)
-        global_data['lab_values'].append(lab)
-    
-    # 更新顯示
-    update_text_display()
 
 # --- 輸入框編輯功能 ---
 input_editing_data = {'idx': None, 'text': ''}
@@ -948,11 +522,7 @@ def on_key_event(event):
 
 # 連接事件處理
 fig.canvas.mpl_connect('pick_event', on_pick_event)
-fig.canvas.mpl_connect('pick_event', on_box_pick_event)  # 方框選擇
-fig.canvas.mpl_connect('button_press_event', on_mouse_press)  # 滑鼠按下
-fig.canvas.mpl_connect('button_release_event', on_mouse_release)  # 滑鼠釋放
-fig.canvas.mpl_connect('motion_notify_event', on_mouse_motion)  # 滑鼠移動
-# key_press_event 將在後面與色塊輸入框事件整合
+fig.canvas.mpl_connect('key_press_event', on_key_event)
 
 def update(val):
     """滑桿更新回調"""
@@ -976,15 +546,10 @@ def update(val):
         idx = input_box_info['idx']
         input_box_info['text'].set_text(f'{sliders[idx].val:.2f}')
     
+    
     # 應用 CCM
-    if global_data['is_manual_mode'] and global_data['user_image'] is not None:
-        # 手動模式：對用戶圖片應用 CCM
-        corrected_img = apply_ccm(global_data['user_image'], new_ccm)
-        global_data['user_image_display'].set_data(corrected_img)
-    else:
-        # 標準模式：對 24 色卡應用 CCM
-        corrected_img = apply_ccm(img_rgb_original, new_ccm)
-        img_display.set_data(corrected_img)
+    corrected_img = apply_ccm(img_rgb_original, new_ccm)
+    img_display.set_data(corrected_img)
     
     # 動態更新 Lab 值
     if global_data['colors_rgb_original']:
@@ -1105,9 +670,6 @@ def update(val):
         # 更新 Lab 顯示視窗
         update_text_display()
     
-    # 更新 CCM 行加總顯示
-    update_ccm_sum_display()
-    
     fig.canvas.draw_idle()
 
 # 綁定所有滑桿
@@ -1126,167 +688,6 @@ def reset(event):
             idx += 1
 
 button.on_clicked(reset)
-
-# --- 色塊編號輸入框 ---
-# 標籤
-color_block_label_ax = plt.axes([0.15, 0.025, 0.15, 0.04])
-color_block_label_ax.axis('off')
-color_block_label_text = plt.text(0.5, 0.5, 'Color Block (1-24):', 
-                                  ha='center', va='center', fontsize=11, fontweight='bold',
-                                  transform=color_block_label_ax.transAxes)
-
-# 輸入框
-color_block_input_ax = plt.axes([0.30, 0.025, 0.08, 0.04])
-color_block_input_ax.axis('off')
-global_data['color_block_input_text'] = plt.text(0.5, 0.5, '1', 
-                                                  ha='center', va='center', fontsize=11,
-                                                  bbox=dict(boxstyle='round,pad=0.4', facecolor='lightyellow', 
-                                                            edgecolor='gray', linewidth=1),
-                                                  transform=color_block_input_ax.transAxes,
-                                                  picker=True)
-
-# 確認按鍵
-def on_select_color_block(event):
-    """根據輸入的編號選擇色塊"""
-    try:
-        block_num = int(global_data['color_block_input_text'].get_text())
-        if not (1 <= block_num <= 24):
-            messagebox.showwarning("警告", "請輸入1-24之間的數字")
-            return
-        
-        # 清除之前的選擇
-        for rect in global_data['color_boxes']:
-            rect.set_edgecolor('cyan')
-            rect.set_linewidth(2)
-        
-        # 如果在手動模式下，選擇對應的方框
-        if global_data['is_manual_mode'] and len(global_data['color_boxes']) > 0:
-            idx = min(block_num - 1, len(global_data['color_boxes']) - 1)
-            if idx < len(global_data['color_boxes']):
-                global_data['color_boxes'][idx].set_edgecolor('red')
-                global_data['color_boxes'][idx].set_linewidth(3)
-                global_data['selected_box_idx'] = idx
-        
-        fig.canvas.draw_idle()
-    except ValueError:
-        messagebox.showerror("錯誤", "請輸入有效的數字")
-
-# 色塊選擇按鍵
-select_block_ax = plt.axes([0.39, 0.025, 0.08, 0.04])
-select_block_btn = Button(select_block_ax, 'Select', color=axcolor, hovercolor='0.975')
-select_block_btn.on_clicked(on_select_color_block)
-
-# 記錄色塊輸入框的編輯狀態
-color_block_editing = {'active': False, 'text': '1'}
-
-def on_color_block_pick(event):
-    """點擊色塊輸入框時觸發"""
-    try:
-        if hasattr(event, 'artist') and event.artist == global_data['color_block_input_text']:
-            color_block_editing['active'] = True
-            color_block_editing['text'] = global_data['color_block_input_text'].get_text()
-            global_data['color_block_input_text'].set_bbox(dict(boxstyle='round,pad=0.4', facecolor='lightcyan', 
-                                                                 edgecolor='blue', linewidth=2))
-            fig.canvas.draw_idle()
-    except Exception as e:
-        pass  # 靜默處理任何異常
-
-def on_color_block_key(event):
-    """色塊輸入框的鍵盤事件"""
-    if not color_block_editing['active']:
-        return
-    
-    text = color_block_editing['text']
-    
-    if event.key == 'backspace':
-        color_block_editing['text'] = text[:-1] if text else ''
-    elif event.key == 'escape':
-        color_block_editing['active'] = False
-        color_block_editing['text'] = '1'
-        global_data['color_block_input_text'].set_text('1')
-        global_data['color_block_input_text'].set_bbox(dict(boxstyle='round,pad=0.4', facecolor='lightyellow', 
-                                                             edgecolor='gray', linewidth=1))
-        fig.canvas.draw_idle()
-        return
-    elif event.key == 'enter':
-        color_block_editing['active'] = False
-        try:
-            block_num = int(color_block_editing['text'])
-            if 1 <= block_num <= 24:
-                on_select_color_block(None)
-            else:
-                messagebox.showwarning("警告", "請輸入1-24之間的數字")
-                color_block_editing['text'] = '1'
-        except ValueError:
-            messagebox.showerror("錯誤", "請輸入有效的數字")
-            color_block_editing['text'] = '1'
-        
-        global_data['color_block_input_text'].set_text(color_block_editing['text'])
-        global_data['color_block_input_text'].set_bbox(dict(boxstyle='round,pad=0.4', facecolor='lightyellow', 
-                                                             edgecolor='gray', linewidth=1))
-        fig.canvas.draw_idle()
-        return
-    elif event.character:
-        # 檢查是否是數字字符
-        if event.character.isdigit():
-            current_text = color_block_editing['text']
-            # 如果當前只有初始值 '1'，替換為新數字；否則追加（最多2位）
-            if current_text == '1' and len(current_text) == 1:
-                # 如果輸入的是 0，設置為 10；否則直接替換
-                if event.character == '0':
-                    color_block_editing['text'] = '1'  # 防止輸入 0，保持為 1
-                else:
-                    color_block_editing['text'] = event.character
-            elif len(current_text) < 2:  # 最多2位數字
-                # 組合成新數字
-                new_num_str = current_text + event.character
-                new_num = int(new_num_str)
-                # 如果超過 24，只保留第一位加新輸入的較小值
-                if new_num > 24:
-                    color_block_editing['text'] = event.character
-                else:
-                    color_block_editing['text'] = new_num_str
-    
-    global_data['color_block_input_text'].set_text(color_block_editing['text'])
-    fig.canvas.draw_idle()
-
-# 建立統一的 pick_event 處理器，整合色塊輸入框
-def unified_pick_event(event):
-    """統一的 pick_event 處理器"""
-    # 先處理色塊輸入框選擇
-    on_color_block_pick(event)
-    # 再處理其他 pick 事件（原有的輸入框）
-    on_pick_event(event)
-
-# 將新的 key_press 事件處理與舊的結合
-old_on_key_event = on_key_event
-
-def combined_on_key_event(event):
-    """組合的鍵盤事件處理"""
-    on_color_block_key(event)
-    old_on_key_event(event)
-
-# 斷開原有的單一 pick_event 連接並重新連接統一版本
-# 移除舊的 pick_event 連接（這些會被新的統一版本取代）
-# 注意：Matplotlib 的 mpl_connect 會自動添加，所以我們在這裡直接使用統一版本
-
-# 重新設定 pick_event 連接（第一個 pick_event 會被統一版本取代）
-# 我們保留第二個 on_box_pick_event 連接，但也將其整合到統一版本
-
-def comprehensive_pick_event(event):
-    """綜合的 pick_event 處理器 - 處理所有 pick 相關事件"""
-    # 1. 先處理色塊輸入框
-    on_color_block_pick(event)
-    # 2. 處理 CCM 矩陣輸入框
-    on_pick_event(event)
-    # 3. 處理方框選擇
-    on_box_pick_event(event)
-
-# 移除現有的 pick_event 連接（透過重新建立連接列表）
-# 由於無法直接移除 Matplotlib 的特定連接，我們使用 comprehensive_pick_event 作為主要處理器
-
-# 連接整合的鍵盤事件
-fig.canvas.mpl_connect('key_press_event', combined_on_key_event)
 
 # --- 顯示 Matplotlib 圖表 ---
 plt.show()

@@ -22,4 +22,4 @@ $$B_{out} = C_{br} \cdot R_{in} + C_{bg} \cdot G_{in} + C_{bb} \cdot B_{in}$$
 1. 對角線元素 (Diagonal Elements): $C_{rr}, C_{gg}, C_{bb}$ 通常接近 1.0，代表保留原始通道的主要成分。
 2. 非對角線元素 (Off-diagonal Elements): 用來引入其他通道的顏色進行修正。例如 $C_{rg}$ 是負值時，表示為了讓紅色更純淨，需要減去一些綠色的成分。
 3. 白平衡保持 (White Balance Preservation): 理想情況下，CCM 每一列（Row）的總和應該等於 1 (例如 $C_{rr} + C_{rg} + C_{rb} = 1$)。這樣能確保純白色經過轉換後依然是純白色，不會偏色。
-4. 線性域操作: 標準的 CCM 運算應該在「線性 RGB 空間」進行。也就是說，輸入影像如果已經經過 Gamma 校正 (如常見的 JPG)，理論上要先「反 Gamma (De-Gamma)」，做完 CCM 後再乘回 Gamma。但為了範例的直觀性與互動速度，下面的程式我們直接在現有影像上操作，這在快速調整風格時也很常見。
+4. 線性域操作: 標準的 CCM 運算應該在「線性 RGB 空間」進行。也就是說，輸入影像如果已經經過 Gamma 校正 (如常見的 JPG)，理論上要先「反 Gamma (De-Gamma)」，做完 CCM 後再乘回 Gamma。
