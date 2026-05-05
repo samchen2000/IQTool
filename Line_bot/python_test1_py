@@ -1,0 +1,14 @@
+
+
+name = "sam"
+avg = 50
+weight = 105.8
+height = 182.4
+man = True
+print(name)
+print(avg)
+print(weight)
+print(height)
+print(man)
+add = weight + height
+print(f"hi : {name}, you old : {avg} , you weight : {weight} add : {add}")
