@@ -5,6 +5,11 @@ avg = 50
 weight = 105.8
 height = 182.4
 man = True
+
+fruits = ["測試一" , "測試二"]
+fruits.append("測試三")
+
+
 print(name)
 print(avg)
 print(weight)
@@ -12,3 +17,4 @@ print(height)
 print(man)
 add = weight + height
 print(f"hi : {name}, you old : {avg} , you weight : {weight} add : {add}")
+print(f"有那些喜歡的水果 {fruits[0]}")
