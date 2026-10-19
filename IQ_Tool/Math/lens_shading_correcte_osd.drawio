@@ -1,0 +1,28 @@
+<mxfile host="65bd71144e">
+    <diagram id="ktUUJMU2aLOrhhgMUA6h" name="第1頁">
+        <mxGraphModel dx="1322" dy="694" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="wj4A1P54Rl5trf7R5_pe-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+                    <mxGeometry height="800" width="920" x="40" y="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="wj4A1P54Rl5trf7R5_pe-7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+                    <mxGeometry height="60" width="900" x="50" y="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="wj4A1P54Rl5trf7R5_pe-8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+                    <mxGeometry height="430" width="390" x="50" y="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="wj4A1P54Rl5trf7R5_pe-9" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+                    <mxGeometry height="260" width="390" x="50" y="570" as="geometry"/>
+                </mxCell>
+                <mxCell id="wj4A1P54Rl5trf7R5_pe-10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+                    <mxGeometry height="240" width="500" x="450" y="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="wj4A1P54Rl5trf7R5_pe-11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+                    <mxGeometry height="250" width="500" x="450" y="380" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

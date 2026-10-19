@@ -10,12 +10,14 @@ class PureRawGui:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("工業級純 RAW (RGGB 16bit) 解析與預覽工具")
+        self.root.title("Sam IQ 純 RAW (RGGB 16bit) 解析與預覽工具")
         self.root.geometry("1000x600")
 
         # 固定影像參數
-        self.WIDTH = 3264
-        self.HEIGHT = 2448
+        #self.WIDTH = 3264
+        #self.HEIGHT = 2448
+        self.WIDTH = 2592
+        self.HEIGHT = 1944
         self.EXPECTED_SIZE = self.WIDTH * self.HEIGHT * 2  # 15,980,544 Bytes
 
         # 介面控制變數

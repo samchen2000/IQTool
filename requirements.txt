@@ -4,3 +4,6 @@ flask
 gunicorn
 line-bot-sdk
 requests
+numpy
+opencv-python
+PyQt6

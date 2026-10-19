@@ -1,11 +1,4 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python-envs.pythonProjects": [
-        {
-            "path": ".",
-            "envManager": "ms-python.python:system",
-            "packageManager": "ms-python.python:pip"
-        }
-    ],
     "cmake.sourceDirectory": "D:/IQ app/python/IQTool/ESP32_P4/isp/esp_driver_isp"
 }
