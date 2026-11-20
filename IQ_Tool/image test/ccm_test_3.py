@@ -386,10 +386,16 @@ def open_image_file():
     if not file_path:
         return False
     
-    # 讀取圖片
-    img_bgr = cv2.imread(file_path)
+    # cv2.imread 在 Windows 上可能無法處理包含非 ASCII 字元的路徑。
+    try:
+        image_data = np.fromfile(file_path, dtype=np.uint8)
+    except OSError as exc:
+        messagebox.showerror("錯誤", f"無法讀取圖片文件：\n{exc}")
+        return False
+
+    img_bgr = cv2.imdecode(image_data, cv2.IMREAD_COLOR) if image_data.size else None
     if img_bgr is None:
-        messagebox.showerror("錯誤", "無法讀取圖片文件")
+        messagebox.showerror("錯誤", "無法解碼圖片文件，請確認檔案未損壞且格式受支援")
         return False
     
     # 轉換為 RGB
@@ -582,15 +588,15 @@ labels = ['R_r', 'R_g', 'R_b', 'G_r', 'G_g', 'G_b', 'B_r', 'B_g', 'B_b']
 
 # 定義每個滑桿的範圍
 slider_ranges = [
-    (0, 2.0),      # 0: R_r
-    (-1.0, 1.0),   # 1: R_g
-    (-1.0, 1.0),   # 2: R_b
-    (-1.0, 1.0),   # 3: G_r
-    (0, 2.0),      # 4: G_g
-    (-1.0, 1.0),   # 5: G_b
-    (-1.0, 1.0),   # 6: B_r
-    (-1.0, 1.0),   # 7: B_g
-    (0, 2.0),      # 8: B_b
+    (0, 3.0),      # 0: R_r
+    (-2.0, 2.0),   # 1: R_g
+    (-2.0, 2.0),   # 2: R_b
+    (-2.0, 2.0),   # 3: G_r
+    (0, 3.0),      # 4: G_g
+    (-2.0, 2.0),   # 5: G_b
+    (-2.0, 2.0),   # 6: B_r
+    (-2.0, 2.0),   # 7: B_g
+    (0, 3.0),      # 8: B_b
 ]
 
 # 全局變量以追蹤輸入框焦點
@@ -714,7 +720,7 @@ def create_button_callbacks():
         def on_inc_clicked(event):
             slider_range = slider_ranges[idx]
             current_val = sliders[idx].val
-            new_val = min(current_val + 0.05, slider_range[1])
+            new_val = min(current_val + 0.02, slider_range[1])
             sliders[idx].set_val(new_val)
             update_ccm_sum_display()
         return on_inc_clicked
@@ -723,7 +729,7 @@ def create_button_callbacks():
         def on_dec_clicked(event):
             slider_range = slider_ranges[idx]
             current_val = sliders[idx].val
-            new_val = max(current_val - 0.05, slider_range[0])
+            new_val = max(current_val - 0.02, slider_range[0])
             sliders[idx].set_val(new_val)
             update_ccm_sum_display()
         return on_dec_clicked

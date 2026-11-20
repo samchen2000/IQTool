@@ -386,10 +386,16 @@ def open_image_file():
     if not file_path:
         return False
     
-    # 讀取圖片
-    img_bgr = cv2.imread(file_path)
+    # cv2.imread 在 Windows 上可能無法處理包含非 ASCII 字元的路徑。
+    try:
+        image_data = np.fromfile(file_path, dtype=np.uint8)
+    except OSError as exc:
+        messagebox.showerror("錯誤", f"無法讀取圖片文件：\n{exc}")
+        return False
+
+    img_bgr = cv2.imdecode(image_data, cv2.IMREAD_COLOR) if image_data.size else None
     if img_bgr is None:
-        messagebox.showerror("錯誤", "無法讀取圖片文件")
+        messagebox.showerror("錯誤", "無法解碼圖片文件，請確認檔案未損壞且格式受支援")
         return False
     
     # 轉換為 RGB
